@@ -28,8 +28,9 @@ PLJAVA_HOME := $(JAVA_HOME)
 include $(PGXS)
 JAVA_HOME := $(PLJAVA_HOME)
 
-# sysconfdir cannot be used since it points to $GPHOME/etc/postgresql
-gpetcdir := ${GPHOME}/etc
+# Avoid using ${GPHOME} here since it might not be consistent with prefix in pg_config.
+# Use relative path from pg_config always.
+gpetcdir := $(sysconfdir)/..
 
 PLJAVADATA = $(DESTDIR)$(datadir)/pljava
 PLJAVALIB  = $(DESTDIR)$(pkglibdir)/java
