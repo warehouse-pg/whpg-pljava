@@ -203,6 +203,11 @@ void SPI_rollbackSavepoint(Savepoint* sp)
 		assertXid(sp->xid);
 		RollbackAndReleaseCurrentSubTransaction();
 	}
-	SPI_restore_connection();
+	/*
+	 * SPI_restore_connection() has been a documented no-op since PostgreSQL
+	 * 10 (commit 1833f1a1c3b) and was finally retired outright in commit
+	 * 75680c3d805 (2023) - the same cleanup that removed
+	 * tuplestore_donestoring(). Nothing to call here any more.
+	 */
 	pfree(sp);
 }

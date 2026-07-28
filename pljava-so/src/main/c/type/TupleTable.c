@@ -54,7 +54,7 @@ jobject TupleTable_create(SPITupleTable* tts, jobject knownTD)
 	if(knownTD == 0)
 		knownTD = TupleDesc_internalCreate(tts->tupdesc);
 
-	tuples = Tuple_createArray(tts->vals, (jint)(tts->alloced - tts->free), true);
+	tuples = Tuple_createArray(tts->vals, (jint)tts->numvals, true);
 	MemoryContextSwitchTo(curr);
 
 	return JNI_newObject(s_TupleTable_class, s_TupleTable_init, knownTD, tuples);

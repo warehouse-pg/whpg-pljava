@@ -234,7 +234,18 @@ JNIEXPORT jboolean JNICALL Java_org_postgresql_pljava_internal_ErrorData__1isSho
 {
 	Ptr2Long p2l;
 	p2l.longVal = _this;
+#if PG_VERSION_NUM >= 190000
+	/*
+	 * show_funcname was dropped from ErrorData by the WHPG19 header merge
+	 * (commit f5d8a63af23): it moved from stored per-error state to a
+	 * parameter computed at log-emit time (from Log_error_verbosity), so
+	 * there's no longer a stored flag to read back here. The closest
+	 * still-available proxy is whether a function name was captured at all.
+	 */
+	return (jboolean)(((ErrorData*)p2l.ptrVal)->funcname != NULL);
+#else
 	return (jboolean)((ErrorData*)p2l.ptrVal)->show_funcname;
+#endif
 }
 
 /*

@@ -14,6 +14,9 @@
 #include <miscadmin.h>
 #include <utils/acl.h>
 #include <catalog/pg_authid.h>
+#if PG_VERSION_NUM >= 160000
+#include <catalog/pg_namespace.h>
+#endif
 
 #include "pljava/type/AclId.h"
 #include "pljava/type/Oid.h"
@@ -213,7 +216,15 @@ Java_org_postgresql_pljava_internal_AclId__1hasSchemaCreatePermission(JNIEnv* en
 {
 	jboolean result = JNI_FALSE;
 	BEGIN_NATIVE
+#if PG_VERSION_NUM >= 160000
+	/*
+	 * Commit c727f511bd7 (PG16, 2022) replaced the many pg_*_aclcheck()
+	 * functions with one generic object_aclcheck() keyed by catalog OID.
+	 */
+	result = (jboolean)(object_aclcheck(NamespaceRelationId, Oid_getOid(oid), AclId_getAclId(aclId), ACL_CREATE) == ACLCHECK_OK);
+#else
 	result = (jboolean)(pg_namespace_aclcheck(Oid_getOid(oid), AclId_getAclId(aclId), ACL_CREATE) == ACLCHECK_OK);
+#endif
 	END_NATIVE
 	return result;
 }
