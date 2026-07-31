@@ -28,7 +28,7 @@
 #include <catalog/pg_type.h>
 
 #if PG_VERSION_NUM >= 120000
- #ifdef HAVE_DLOPEN
+ #ifndef WIN32
  #include <dlfcn.h>
  #endif
  #define pg_dlopen(f) dlopen((f), RTLD_NOW | RTLD_GLOBAL)
@@ -39,8 +39,24 @@
  #include <dynloader.h>
 #endif
 
+/*
+ * PG19 widened the signal-handler argument list (SIGNAL_ARGS now expands to
+ * the signal number plus a const pg_signal_info*, see port.h) and made
+ * pqsignal() return void instead of the previous handler. SIGNAL_ARGS and
+ * PASS_SIGNAL_ARGS are themselves long-standing core macros; these
+ * fallbacks only kick in on older trees that don't define them at all, so
+ * the handlers below build unchanged against both.
+ */
+#ifndef SIGNAL_ARGS
+ #define SIGNAL_ARGS int postgres_signal_arg
+#endif
+#ifndef PASS_SIGNAL_ARGS
+ #define PASS_SIGNAL_ARGS postgres_signal_arg
+#endif
+
 #include <storage/ipc.h>
 #include <storage/proc.h>
+#include <storage/procsignal.h>
 #include <storage/sinval.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -110,7 +126,6 @@ jlong mainThreadId;
 
 static pthread_t s_mainThreadIdForHandler;
 static bool s_handlerSubstituted = false;
-static pqsigfunc s_oldHandlerFunc = NULL;
 
 static JavaVM* s_javaVM = 0;
 static jclass  s_Backend_class;
@@ -165,8 +180,8 @@ static void reLogWithChangedLevel(int);
 #endif
 
 #ifdef USE_PLJAVA_SIGHANDLERS
-static void pljavaStatementCancelHandler(int);
-static void pljavaDieHandler(int);
+static void pljavaStatementCancelHandler(SIGNAL_ARGS);
+static void pljavaDieHandler(SIGNAL_ARGS);
 #endif
 
 enum initstage
@@ -830,7 +845,7 @@ static char* getClassPath(const char* prefix)
 
 #ifdef USE_PLJAVA_SIGHANDLERS
 
-static void pljavaStatementCancelHandler(int signum)
+static void pljavaStatementCancelHandler(SIGNAL_ARGS)
 {
 	if(!proc_exit_inprogress)
 	{
@@ -843,7 +858,7 @@ static void pljavaStatementCancelHandler(int signum)
 	}
 }
 
-static void pljavaDieHandler(int signum)
+static void pljavaDieHandler(SIGNAL_ARGS)
 {
 	if(!proc_exit_inprogress)
 	{
@@ -856,22 +871,25 @@ static void pljavaDieHandler(int signum)
 	}
 }
 
-static void PLCatchupInterruptHandler(int signo)
+static void PLCatchupInterruptHandler(SIGNAL_ARGS)
 {
-	if(s_oldHandlerFunc == NULL)
-	{
-		return;
-	}
-
 	pthread_t currentThreadId = pthread_self();
 
 	if(currentThreadId == s_mainThreadIdForHandler)
 	{
-		s_oldHandlerFunc(signo);
+		/*
+		 * procsignal_sigusr1_handler is the real, always-installed SIGUSR1
+		 * handler this backend uses (see postgres.c). pqsignal() no longer
+		 * hands back the previously installed handler to capture and
+		 * forward to (its internal dispatch table is private to
+		 * pqsignal.c), so call the known handler directly by name instead
+		 * of trying to recover a captured function pointer.
+		 */
+		procsignal_sigusr1_handler(PASS_SIGNAL_ARGS);
 	}
 	else
 	{
-		pthread_kill(s_mainThreadIdForHandler, signo);
+		pthread_kill(s_mainThreadIdForHandler, postgres_signal_arg);
 	}
 }
 
@@ -951,14 +969,7 @@ static void _destroyJavaVM(int status, Datum dummy)
 		/*
 		 * Recover the handler of SIGUSR1 when initiate JVM failed.
 		 * */
-		if(s_oldHandlerFunc == NULL)
-		{
-			pqsignal(SIGUSR1, SIG_IGN);
-		}
-		else
-		{
-			pqsignal(SIGUSR1, s_oldHandlerFunc);
-		}
+		pqsignal(SIGUSR1, procsignal_sigusr1_handler);
 		s_handlerSubstituted = false;
 	}
 }
@@ -1238,7 +1249,7 @@ static Datum internalCallHandler(bool trusted, PG_FUNCTION_ARGS)
 	if(!s_handlerSubstituted)
 	{
 		s_mainThreadIdForHandler = pthread_self();
-		s_oldHandlerFunc = pqsignal(SIGUSR1, PLCatchupInterruptHandler);
+		pqsignal(SIGUSR1, PLCatchupInterruptHandler);
 		s_handlerSubstituted = true;
 	}
 #endif

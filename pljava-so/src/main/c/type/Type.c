@@ -54,6 +54,21 @@ static CoercionPathType fcp(Oid targetTypeId, Oid sourceTypeId,
 
 #if PG_VERSION_NUM < 90500
 #define DomainHasConstraints(x) true
+#elif PG_VERSION_NUM >= 190000
+/*
+ * Commit 487cf2cbd2f (2026, PG19) added a second out-parameter to
+ * DomainHasConstraints() for reporting constraint volatility, which pljava
+ * doesn't need here; adapt the single-argument call site below through
+ * this shim rather than touching the call site itself for every future
+ * version.
+ */
+#define DomainHasConstraints(x) DomainHasConstraints_pljava_shim(x)
+static inline bool DomainHasConstraints_pljava_shim(Oid type_id)
+{
+	bool unused_has_volatile;
+	/* parenthesized name suppresses the macro above, reaching the real fn */
+	return (DomainHasConstraints)(type_id, &unused_has_volatile);
+}
 #endif
 
 static HashMap s_typeByOid;

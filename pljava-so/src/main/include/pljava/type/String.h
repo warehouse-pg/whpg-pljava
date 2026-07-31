@@ -21,15 +21,19 @@ extern "C" {
  * class will be used for all types that are not explicitly mapped.
  * 
  * The class also has some convenience routings for Java String manipulation.
- * 
+ *
  * @author Thomas Hallgren
+ *
+ * Since PostgreSQL's Value node split (String/Integer/Float/etc. structs
+ * replacing the generic Value node), this struct can no longer be named
+ * String, hence PLJString here even though the files stay named String.[hc].
  *
  **************************************************************************/
 
 extern jclass s_Object_class;
 extern jclass s_String_class;
 struct String_;
-typedef struct String_* String;
+typedef struct String_* PLJString;
 
 /*
  * Create a Java String object from a null terminated string. Conversion is
@@ -73,7 +77,7 @@ extern text* String_createText(jstring javaString);
 
 extern Type String_obtain(Oid typeId);
 
-extern String StringClass_obtain(TypeClass self, Oid typeId);
+extern PLJString StringClass_obtain(TypeClass self, Oid typeId);
 
 #ifdef __cplusplus
 }
