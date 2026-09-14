@@ -12,6 +12,7 @@
  *   PostgreSQL Global Development Group
  *   Chapman Flack
  */
+#include <math.h>
 #include <sys/time.h>
 
 #include <postgres.h>

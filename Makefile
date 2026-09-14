@@ -57,7 +57,14 @@ installdirs:
 	$(MKDIR_P) '$(PLJAVADATA)/docs'
 	$(MKDIR_P) '$(PLJAVAEXT)'
 
-ifeq ($(GP_MAJORVERSION), 7)
+# $GPHOME/etc/environment.d was introduced in 7X and every later line keeps it
+# (WHPG19 reports GP_MAJORVERSION=19). Testing for equality with 7 therefore
+# silently skipped the conf on WHPG19, and with it the JAVA_HOME/LD_LIBRARY_PATH
+# setup the JVM needs to be dlopen'd. Gate on "7 or newer" instead.
+GP_ENV_D_SUPPORTED := $(shell test -n '$(GP_MAJORVERSION)' && \
+	test '$(GP_MAJORVERSION)' -ge 7 2>/dev/null && echo yes)
+
+ifeq ($(GP_ENV_D_SUPPORTED), yes)
 installconfs:
 	$(MKDIR_P) '$(GP_ENV_DIR)'
 	$(INSTALL_DATA) '$(PROJDIR)/gpdb/installation/30-pljava.conf' '$(GP_ENV_DIR)'
@@ -82,7 +89,7 @@ install: installdirs install-lib installconfs
 uninstall: uninstall-lib 
 	rm -rf '$(PLJAVALIB)'
 	rm -rf '$(PLJAVADATA)'
-	rm -rf '$(GP_ENV_DIR)/10-pljava.conf'
+	rm -rf '$(GP_ENV_DIR)/30-pljava.conf'
 	find $(PLJAVAEXT) -name "pljava*" | xargs rm -rf
 
 show_java_version:
