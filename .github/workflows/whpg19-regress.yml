@@ -1,0 +1,103 @@
+name: WHPG19 regress
+
+# Gate for the WHPG19 line. `whpg` is a single multi-line branch - the PG19
+# adaptation is guarded on PG_VERSION_NUM rather than living on a branch of its
+# own - so a change that compiles on one line can silently break another. That
+# is not hypothetical: PR #2 (WHPG19) left SPITupleTable.numvals ungated and
+# the branch stopped compiling against WarehousePG 7 (PG12) without anything
+# noticing, because no lane builds this repo at all today.
+#
+# whpg-extensions-packaging has a pljava lane, but it is workflow_dispatch only
+# and defaults to whpg-version 7.5.0-WHPG; there is no WHPG19 lane anywhere.
+
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  push:
+    branches: [whpg]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+    inputs:
+      whpg-server-image:
+        description: >-
+          Container image carrying an installed WarehousePG 19 at $GPHOME,
+          plus gpAux/gpdemo. Overrides the WHPG19_SERVER_IMAGE variable.
+        required: false
+        type: string
+
+env:
+  # Set this as a repository or organisation variable once a WHPG19 server
+  # image is published. Until then the job below stops with a clear message
+  # rather than reporting a green run that tested nothing.
+  SERVER_IMAGE: ${{ inputs.whpg-server-image || vars.WHPG19_SERVER_IMAGE }}
+  GPHOME: /usr/local/whpg
+  GPDEMO_SRC: /opt/gpdemo
+
+jobs:
+  regress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # The build JDK is not a matrix axis: only JDK 8 can build this tree.
+        # The top-level pom.xml compiles -source/-target 1.6 against
+        # $JAVA_HOME/jre/lib/rt.jar, and JDK 9+ has neither (11 fails with
+        # "Unable to find package java.lang in classpath or bootclasspath",
+        # 17 and 21 with "Source option 6 is no longer supported").
+        # What does vary is the JVM the server loads at run time.
+        runtime-jdk: ["8", "11", "17"]
+        include:
+          # 21 is informational: PL/Java 1.5's trusted-language sandbox needs
+          # SecurityManager, which JDK 18+ disables by default. It can be
+          # re-enabled with pljava_vmoptions=-Djava.security.manager=allow,
+          # after which the only remaining failures are CLDR locale
+          # differences in the expected output - not functional breakage.
+          # Do not let it gate the branch until those are addressed.
+          - runtime-jdk: "21"
+            experimental: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check a server image is configured
+        run: |
+          if [ -z "$SERVER_IMAGE" ]; then
+            echo "::error::No WHPG19 server image configured." \
+                 "Set the WHPG19_SERVER_IMAGE repository variable, or pass" \
+                 "whpg-server-image on a manual run. See ci/README.md for how" \
+                 "to reproduce this lane locally in the meantime."
+            exit 1
+          fi
+
+      - name: Build the pljava build image
+        run: |
+          docker build -f ci/Dockerfile \
+            --build-arg BASE_IMAGE="$SERVER_IMAGE" \
+            -t whpg-pljava-build:ci .
+
+      - name: Build with JDK 8, test on JVM ${{ matrix.runtime-jdk }}
+        continue-on-error: ${{ matrix.experimental == true }}
+        run: |
+          docker run --rm --name pljava-ci-${{ matrix.runtime-jdk }} \
+            -v "$PWD:/home/gpadmin/pljava_src:rw" \
+            -e GPHOME -e GPDEMO_SRC \
+            -e BUILD_JDK=8 \
+            -e RUNTIME_JDK=${{ matrix.runtime-jdk }} \
+            -e SRC_DIR=/home/gpadmin/pljava_src \
+            -e RUN_MPP=${{ matrix.runtime-jdk == '8' && '1' || '' }} \
+            -u gpadmin \
+            whpg-pljava-build:ci \
+            /home/gpadmin/pljava_src/ci/run-regress.sh
+
+      - name: Upload regression.diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-diffs-jdk${{ matrix.runtime-jdk }}
+          path: gpdb/tests/regression.diffs
+          if-no-files-found: ignore
