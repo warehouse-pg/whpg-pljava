@@ -59,8 +59,9 @@ jobject TupleTable_create(SPITupleTable* tts, jobject knownTD)
 	 * PostgreSQL 13 (upstream "Further adjust SPITupleTable to provide a
 	 * public row-count field") made numvals the public row count and dropped
 	 * the free member, repurposing alloced as the private array length.
-	 * WarehousePG 7 is PG12, which still carries the alloced/free pair, so
-	 * this has to stay gated rather than be rewritten unconditionally.
+	 * WarehousePG 7 (PG12) and WarehousePG 6 (PG9.4) both still carry the
+	 * alloced/free pair, so this has to stay gated rather than be rewritten
+	 * unconditionally.
 	 */
 	tuples = Tuple_createArray(tts->vals, (jint)tts->numvals, true);
 #else
