@@ -203,11 +203,20 @@ void SPI_rollbackSavepoint(Savepoint* sp)
 		assertXid(sp->xid);
 		RollbackAndReleaseCurrentSubTransaction();
 	}
+#if PG_VERSION_NUM < 100000
 	/*
-	 * SPI_restore_connection() has been a documented no-op since PostgreSQL
-	 * 10 (commit 1833f1a1c3b) and was finally retired outright in commit
-	 * 75680c3d805 (2023) - the same cleanup that removed
-	 * tuplestore_donestoring(). Nothing to call here any more.
+	 * Before PostgreSQL 10 this is a real function that re-establishes the
+	 * SPI connection after the subtransaction above was aborted, and it has
+	 * to be called: WarehousePG 6 is PG9.4-based, and without this
+	 * javatest.testTransactionRecovery() fails with
+	 * "SPI function SPI_prepare failed with error SPI_ERROR_UNCONNECTED".
+	 *
+	 * PostgreSQL 10 (commit 1833f1a1c3b) turned it into a no-op macro and
+	 * PostgreSQL 17 (commit 75680c3d805, the same cleanup that removed
+	 * tuplestore_donestoring()) deleted it outright - so on the newer lines
+	 * there is nothing to call, and on PG17+ calling it would not compile.
 	 */
+	SPI_restore_connection();
+#endif
 	pfree(sp);
 }
