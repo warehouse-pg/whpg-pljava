@@ -31,14 +31,42 @@ on:
 
 env:
   # Set this as a repository or organisation variable once a WHPG19 server
-  # image is published. Until then the job below stops with a clear message
-  # rather than reporting a green run that tested nothing.
+  # image is published; until then the regress job below is skipped rather
+  # than run (see the `if:` on it).
   SERVER_IMAGE: ${{ inputs.whpg-server-image || vars.WHPG19_SERVER_IMAGE }}
   GPHOME: /usr/local/whpg
   GPDEMO_SRC: /opt/gpdemo
 
 jobs:
+  # Always runs, so a PR gets a real signal even while the regress job below
+  # cannot. Catches the mistakes that are actually likely in these files.
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: for f in ci/*.sh; do bash -n "$f"; done
+      - name: Scripts are executable
+        run: |
+          for f in ci/run-regress.sh ci/mpp-signal-check.sh ci/entrypoint.sh; do
+            test -x "$f" || { echo "::error::$f is not executable"; exit 1; }
+          done
+      - name: installconfs still gates on "7 or newer"
+        run: |
+          # There is no pg_config on this runner, so check the gate textually.
+          # An equality test against 7 here is what silently skipped
+          # 30-pljava.conf on WHPG19, which reports GP_MAJORVERSION=19.
+          if ! grep -q -- "GP_MAJORVERSION)' -ge 7" Makefile; then
+            echo "::error file=Makefile::installconfs must gate on GP_MAJORVERSION >= 7, not == 7"
+            exit 1
+          fi
+
   regress:
+    # Skipped, not failed, when no WHPG19 server image is configured. Failing
+    # here would put a red X on every PR until such an image exists, which
+    # just trains people to ignore it.
+    if: ${{ inputs.whpg-server-image != '' || vars.WHPG19_SERVER_IMAGE != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -64,15 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check a server image is configured
-        run: |
-          if [ -z "$SERVER_IMAGE" ]; then
-            echo "::error::No WHPG19 server image configured." \
-                 "Set the WHPG19_SERVER_IMAGE repository variable, or pass" \
-                 "whpg-server-image on a manual run. See ci/README.md for how" \
-                 "to reproduce this lane locally in the meantime."
-            exit 1
-          fi
+      - name: Sanity-check the server image is set
+        run: test -n "$SERVER_IMAGE"
 
       - name: Build the pljava build image
         run: |
