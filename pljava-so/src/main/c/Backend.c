@@ -16,6 +16,7 @@
 #ifndef WIN32
 #include <libpq/pqsignal.h>
 #include <storage/procsignal.h>
+#include <cdb/cdbvars.h>
 #include <pthread.h>
 
 /*
@@ -826,7 +827,16 @@ static void initsequencer(enum initstage is, bool tolerant)
 		/*FALLTHROUGH*/
 
 	case IS_PLJAVA_INSTALLING:
-		if ( NULL != pljavaLoadPath )
+		/*
+		 * Greenplum dispatches the extension script, and so this LOAD, to
+		 * every segment. The groundwork below issues DDL through SPI; on a
+		 * query executor that is both disallowed ("cannot execute on a QE
+		 * slice because it issues a non-SELECT statement") and wrong - the
+		 * schema, tables and handlers reach the segments as the dispatched
+		 * form of the coordinator's own statements, with pre-assigned OIDs.
+		 * Only the dispatcher (or a utility-mode session) runs the groundwork.
+		 */
+		if ( NULL != pljavaLoadPath && Gp_role != GP_ROLE_EXECUTE )
 		{
 			warnJEP411 = javaGT11;
 			InstallHelper_groundwork(); /* sqlj schema, language handlers, ...*/
