@@ -1,0 +1,11 @@
+a.out
+*.out.diff
+*.diffs
+*.rpm
+*.gppkg
+packaging/gppkg_spec.yml
+tests/sql/pljava_ext_init.sql
+tests/sql/pljava_init.sql
+tests/results/
+tests/regression.*
+tests/log/

@@ -1,0 +1,8 @@
+Package: pljava
+Version: #version
+Section: base
+Priority: optional
+Architecture: #arch
+Maintainer: GPDB Extension <gpdb-extension@pivotal.io>
+Description: PL/Java
+  The PL/Java package provides Procedural language implementation of Java for Greenplum Database.

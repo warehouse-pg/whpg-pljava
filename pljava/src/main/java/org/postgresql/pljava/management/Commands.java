@@ -875,6 +875,26 @@ public class Commands
 		if(undeploy)
 			deployRemove(jarId, jarName);
 
+		/*
+		 * Greenplum does not enforce foreign keys, so the ON DELETE CASCADE
+		 * on the dependent tables never fires. Remove the dependents
+		 * explicitly, or a later install_jar of the same name finds the old
+		 * classpath entries pointing at a jar that is gone.
+		 */
+		for ( String dependent : new String[] {
+				"sqlj.classpath_entry", "sqlj.jar_descriptor", "sqlj.jar_entry" } )
+		{
+			try ( PreparedStatement stmt = getDefaultConnection()
+				.prepareStatement(
+					"DELETE FROM " + dependent +
+					" WHERE jarId OPERATOR(pg_catalog.=) ?");
+			)
+			{
+				stmt.setInt(1, jarId);
+				stmt.executeUpdate();
+			}
+		}
+
 		try ( PreparedStatement stmt = getDefaultConnection()
 			.prepareStatement(
 				"DELETE FROM sqlj.jar_repository " +

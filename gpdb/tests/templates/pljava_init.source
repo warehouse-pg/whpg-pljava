@@ -1,0 +1,11 @@
+-- Non-extension installation: in 1.6 a plain LOAD of the library performs the
+-- same groundwork CREATE EXTENSION does (sqlj schema, handlers, languages).
+LOAD '@PLJAVA_LIB@';
+
+SELECT sqlj.install_jar('file:@EXAMPLES_JAR@', 'examples', false);
+CREATE SCHEMA javatest AUTHORIZATION pljava_test;
+SELECT sqlj.set_classpath('javatest', 'examples');
+
+alter database pljava_test owner to pljava_test;
+
+\c pljava_test pljava_test

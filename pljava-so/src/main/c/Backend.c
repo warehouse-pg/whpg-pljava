@@ -2064,6 +2064,21 @@ static Datum internalValidator(bool trusted, PG_FUNCTION_ARGS)
 		PG_RETURN_VOID();
 
 	/*
+	 * Under Greenplum the validator cannot do its job at CREATE FUNCTION
+	 * time. Resolving the class means SPI lookups in sqlj.classpath_entry
+	 * and sqlj.jar_entry, and on the dispatcher those SELECTs are dispatched
+	 * to a segment - which also flushes the list of OIDs pre-assigned for
+	 * the CREATE FUNCTION itself, so the segments then fail with "no
+	 * pre-assigned OID for pg_proc tuple". On an executor the dispatched
+	 * CREATE FUNCTION must not issue queries of its own at all. So in both
+	 * roles the function is accepted here and resolved on first call, which
+	 * is also what the 1.5-based WarehousePG line did (it had no validator).
+	 * check_function_bodies = off gives the same behaviour on stock PostgreSQL.
+	 */
+	if ( Gp_role != GP_ROLE_UTILITY )
+		PG_RETURN_VOID();
+
+	/*
 	 * In the call handler, which could be called heavily, funcoid gets
 	 * unconditionally stored to one of these two locations, rather than
 	 * spending extra cycles deciding whether to store it or not. A validator
