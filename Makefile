@@ -34,8 +34,20 @@ REGRESS_DIR = $(top_builddir)
 .DEFAULT_GOAL := build
 .PHONY: build install uninstall test targetconfig targetcheck installcheck regress-sql show_java_version
 
+# PL/Java 1.6 compiles with --release and needs JDK >= PLJAVA_MIN_JDK. If the
+# JAVA_HOME we were handed is older (packaging images still default to 8), look
+# for a newer JDK under /usr/lib/jvm before giving up with a clear message -
+# javac's own complaint is only "invalid flag: --release".
+jdk_major = $(shell '$(1)/bin/java' -version 2>&1 | sed -nE 's/^[a-z]+ version "(1\.)?([0-9]+).*/\2/p')
+BUILD_JAVA_HOME := $(JAVA_HOME)
+ifeq ($(shell test -n '$(JAVA_HOME)' && test '$(call jdk_major,$(JAVA_HOME))' -ge $(PLJAVA_MIN_JDK) 2>/dev/null && echo ok),)
+BUILD_JAVA_HOME := $(firstword $(foreach v,$(PLJAVA_BUILD_JDK) 21 11,$(wildcard /usr/lib/jvm/java-$(v)-openjdk /usr/lib/jvm/java-$(v)-openjdk-*)))
+endif
+
 build:
-	mvn -B clean install
+	@test -n '$(BUILD_JAVA_HOME)' || { echo "PL/Java $(PLJAVA_OSS_VERSION) needs JDK $(PLJAVA_MIN_JDK)+ to build; JAVA_HOME=$(JAVA_HOME) is older and no newer JDK was found under /usr/lib/jvm" >&2; exit 1; }
+	@echo "building with JAVA_HOME=$(BUILD_JAVA_HOME)"
+	JAVA_HOME='$(BUILD_JAVA_HOME)' PATH='$(BUILD_JAVA_HOME)/bin:$(PATH)' mvn -B clean install
 
 # `java -jar` installs through pg_config into pkglibdir/sharedir. With DESTDIR
 # set it is given a pg_config wrapper that reports every path with the install

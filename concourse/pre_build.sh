@@ -5,8 +5,8 @@ set -ex
 source "$CI_REPO_DIR/common/entry_common.sh"
 source "$(dirname "$0")/common.sh"
 
-# Use jdk8 to build always
-install_java 8
+# PL/Java 1.6 needs Java 9+; build with the JDK named in release.mk
+install_java 17
 setup_maven
 
 {
