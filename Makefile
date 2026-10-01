@@ -80,9 +80,18 @@ test: show_java_version regress-sql
 	cd $(PROJDIR)/gpdb/tests && $(REGRESS_DIR)/src/test/regress/pg_regress $(REGRESS_OPTS) $(REGRESS)
 
 # Cluster-wide: tell the server where libjvm.so is. Needs a restart to apply.
+# On Java 18 and later PL/Java 1.6 refuses to load unless the JVM is started
+# with -Djava.security.manager=allow (JEP 411); enforcement itself works through
+# Java 23. Set or clear pljava.vmoptions to match the runtime JDK.
+JAVA_MAJOR := $(shell '$(JAVA_HOME)/bin/java' -version 2>&1 | sed -nE 's/^[a-z]+ version "(1\.)?([0-9]+).*/\2/p')
 targetconfig:
 	test -n '$(LIBJVM)' || { echo "cannot find libjvm.so under JAVA_HOME=$(JAVA_HOME)"; exit 1; }
 	gpconfig -c pljava.libjvm_location -v "'$(LIBJVM)'" --skipvalidation
+	if [ '$(JAVA_MAJOR)' -ge 18 ] 2>/dev/null; then \
+	  gpconfig -c pljava.vmoptions -v "'-Djava.security.manager=allow'" --skipvalidation; \
+	else \
+	  gpconfig -r pljava.vmoptions --skipvalidation >/dev/null 2>&1 || true; \
+	fi
 
 installcheck: test
 targetcheck: targetconfig test
