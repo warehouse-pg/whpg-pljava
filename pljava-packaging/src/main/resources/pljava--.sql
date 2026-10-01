@@ -26,7 +26,8 @@ DROP TABLE IF EXISTS
 CREATE TABLE
 @extschema@."see doc: do CREATE EXTENSION PLJAVA in new session"
 (path, exnihilo) AS
-SELECT CAST('${module.pathname}' AS text), false;
+SELECT CAST('${module.pathname}' AS text), false
+DISTRIBUTED REPLICATED;
 LOAD '${module.pathname}';
 
 /*
@@ -47,6 +48,6 @@ LOAD '${module.pathname}';
  */
 
 CREATE TABLE
-@extschema@."see doc: do CREATE EXTENSION PLJAVA in new session"();
+@extschema@."see doc: do CREATE EXTENSION PLJAVA in new session"() DISTRIBUTED REPLICATED;
 DROP TABLE
 @extschema@."see doc: do CREATE EXTENSION PLJAVA in new session";
