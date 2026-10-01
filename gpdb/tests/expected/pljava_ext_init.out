@@ -1,12 +1,12 @@
+-- The examples jar path depends on where WarehousePG is installed.
+-- start_matchsubs
+-- m/'file:\S*\/pljava-examples-[0-9.]+\.jar'/
+-- s/'file:\S*\/pljava-examples-[0-9.]+\.jar'/'file:INSTALLDIR\/pljava-examples-VERSION.jar'/
+-- end_matchsubs
+-- PL/Java's load banner (versions NOTICE, JEP 411 advisory on Java 12+) depends
+-- on the runtime JDK; keep this test's output independent of it.
+set client_min_messages = error;
 CREATE EXTENSION pljava;
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
-WARNING:  creating a table with no columns.
-WARNING:  [JEP 411] migration advisory: Java version 24 and later cannot run PL/Java 1.6.10 with policy enforcement
-DETAIL:  This PL/Java version enforces security policy using important Java features that upstream Java has disabled as of Java 24, as described in JEP 486. In Java 18 through 23, enforcement is still available, but requires "-Djava.security.manager=allow" in "pljava.vmoptions".
-HINT:  For migration planning, this version of PL/Java can still enforce policy in Java versions up to and including 23, and Java 17 and 21 are positioned as long-term support releases. Java 24 and later can be used, if wanted, WITH ABSOLUTELY NO EXPECTATIONS OF SECURITY POLICY ENFORCEMENT, by adding "-Djava.security.manager=disallow" in "pljava.vmoptions". This mode should be considered only if all Java code to be used is considered well vetted and trusted. For details on how PL/Java will adapt, please bookmark https://github.com/tada/pljava/wiki/JEP-411
 -- PL/Java 1.6 loads classes from the sqlj jar repository, which WarehousePG
 -- replicates to every segment. Install the examples jar (no deploy: the test
 -- creates its own functions) and give the javatest schema a classpath to it.

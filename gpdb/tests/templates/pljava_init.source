@@ -1,3 +1,8 @@
+-- The examples jar path depends on where WarehousePG is installed.
+-- start_matchsubs
+-- m/'file:\S*\/pljava-examples-[0-9.]+\.jar'/
+-- s/'file:\S*\/pljava-examples-[0-9.]+\.jar'/'file:INSTALLDIR\/pljava-examples-VERSION.jar'/
+-- end_matchsubs
 -- PL/Java's load banner (versions NOTICE, JEP 411 advisory on Java 12+) depends
 -- on the runtime JDK; keep this test's output independent of it.
 set client_min_messages = error;

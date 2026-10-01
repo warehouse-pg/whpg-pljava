@@ -5,6 +5,10 @@
 -- start_matchsubs
 -- m/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /
 -- s/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /DD Mon YY HH:MM:SS /
+-- atmsort strips the segment suffix from ERROR/NOTICE/WARNING lines but not from
+-- INFO, which the 1.6 examples use; host, port and pid vary per cluster.
+-- m/\(seg\d+ slice\d+ [\d.]+:\d+ pid=\d+\)/
+-- s/\(seg\d+ slice\d+ [\d.]+:\d+ pid=\d+\)/(segN sliceN HOST:PORT pid=N)/
 -- end_matchsubs
 set TIMEZONE=UTC;
 set search_path = javatest, public;
