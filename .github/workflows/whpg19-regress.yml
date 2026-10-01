@@ -43,10 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Shell syntax
-        run: for f in ci/*.sh; do bash -n "$f"; done
+        run: for f in gpdb/ci/*.sh; do bash -n "$f"; done
       - name: Scripts are executable
         run: |
-          for f in ci/run-regress.sh ci/mpp-signal-check.sh ci/entrypoint.sh; do
+          for f in gpdb/ci/run-regress.sh gpdb/ci/mpp-signal-check.sh gpdb/ci/entrypoint.sh; do
             test -x "$f" || { echo "::error::$f is not executable"; exit 1; }
           done
 
@@ -74,7 +74,7 @@ jobs:
 
       - name: Build the pljava build image
         run: |
-          docker build -f ci/Dockerfile \
+          docker build -f gpdb/ci/Dockerfile \
             --build-arg BASE_IMAGE="$SERVER_IMAGE" \
             -t whpg-pljava-build:ci .
 
@@ -89,7 +89,7 @@ jobs:
             -e RUN_MPP=${{ matrix.runtime-jdk == '17' && '1' || '' }} \
             -u gpadmin \
             whpg-pljava-build:ci \
-            /home/gpadmin/pljava_src/ci/run-regress.sh
+            /home/gpadmin/pljava_src/gpdb/ci/run-regress.sh
 
       - name: Upload regression.diffs
         if: failure()
