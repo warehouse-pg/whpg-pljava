@@ -7,6 +7,9 @@
 -- The MetaDataInts example cannot parse WarehousePG's version() string and
 -- quotes it in an INFO line: build host, architecture and compile date, which
 -- differ between a developer build and the packaged server.
+-- Java 20+ ships CLDR 42, which formats the Parameters example's full date-time
+-- as "February 14, 2016, 8:09:10<U+202F>AM" where Java 17 and earlier print
+-- "February 14, 2016 at 8:09:10 AM"; reduce both to one form.
 -- Prose must stay outside the block: atmsort pairs its lines positionally, so
 -- a comment inside it silently disables the rules that follow.
 -- start_matchsubs
@@ -16,6 +19,8 @@
 -- s/\(seg\d+ slice\d+ [\d.]+:\d+ pid=\d+\)/(segN sliceN HOST:PORT pid=N)/
 -- m/Unexpected product version string format: .*/
 -- s/Unexpected product version string format: .*/Unexpected product version string format: VERSION_STRING/
+-- m/Timestamp is \w+, \w+ \d+, \d{4}/
+-- s/(\d{4})(?:,| at) (\d{1,2}:\d{2}:\d{2})[^AP]*([AP]M)/$1 $2 $3/
 -- end_matchsubs
 set TIMEZONE=UTC;
 set search_path = javatest, public;
