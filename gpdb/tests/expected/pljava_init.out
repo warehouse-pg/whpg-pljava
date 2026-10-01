@@ -1,7 +1,40 @@
-CREATE FUNCTION java_call_handler()  RETURNS language_handler AS 'pljava' LANGUAGE C;
-CREATE FUNCTION javau_call_handler() RETURNS language_handler AS 'pljava' LANGUAGE C;
-CREATE TRUSTED LANGUAGE java HANDLER java_call_handler;
-CREATE LANGUAGE javaU HANDLER javau_call_handler;
+-- Non-extension installation: in 1.6 a plain LOAD of the library performs the
+-- same groundwork CREATE EXTENSION does (sqlj schema, handlers, languages).
+LOAD 'libpljava-so-1.6.10';
+NOTICE:  PL/Java loaded
+DETAIL:  versions:
+PL/Java native code (1.6.10)
+PL/Java common code (1.6.10)
+Built for (PostgreSQL 19beta1 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14), 64-bit)
+Loaded in (PostgreSQL 19beta1 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14), 64-bit (Greenplum Database) 19.0.0 build dev compiled on Jul 20 2026 08:21:10 Bhuvnesh C. WarehousePG)
+OpenJDK Runtime Environment (17.0.20+8-LTS)
+OpenJDK 64-Bit Server VM (17.0.20+8-LTS, mixed mode, sharing)
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
+WARNING:  [JEP 411] migration advisory: Java version 24 and later cannot run PL/Java 1.6.10 with policy enforcement
+DETAIL:  This PL/Java version enforces security policy using important Java features that upstream Java has disabled as of Java 24, as described in JEP 486. In Java 18 through 23, enforcement is still available, but requires "-Djava.security.manager=allow" in "pljava.vmoptions".
+HINT:  For migration planning, this version of PL/Java can still enforce policy in Java versions up to and including 23, and Java 17 and 21 are positioned as long-term support releases. Java 24 and later can be used, if wanted, WITH ABSOLUTELY NO EXPECTATIONS OF SECURITY POLICY ENFORCEMENT, by adding "-Djava.security.manager=disallow" in "pljava.vmoptions". This mode should be considered only if all Java code to be used is considered well vetted and trusted. For details on how PL/Java will adapt, please bookmark https://github.com/tada/pljava/wiki/JEP-411
+SELECT sqlj.install_jar('file:/usr/local/whpg/Versions/2.1.0/share/postgresql/pljava/pljava-examples-1.6.10.jar', 'examples', false);
+ install_jar 
+-------------
+ 
+(1 row)
+
+CREATE SCHEMA javatest AUTHORIZATION pljava_test;
+SELECT sqlj.set_classpath('javatest', 'examples');
+ set_classpath 
+---------------
+ 
+(1 row)
+
+-- 1.6 revokes USAGE on the trusted language from PUBLIC; the tests run as
+-- pljava_test, so grant it back explicitly.
+GRANT USAGE ON LANGUAGE java TO pljava_test;
+-- pljava.control says schema = sqlj, so CREATE EXTENSION pre-creates the schema
+-- and PL/Java's own groundwork leaves its permissions untouched: public has no
+-- USAGE on sqlj, which the class loader needs when a non-superuser calls in.
+GRANT USAGE ON SCHEMA sqlj TO public;
 alter database pljava_test owner to pljava_test;
 \c pljava_test pljava_test
-CREATE SCHEMA javatest;

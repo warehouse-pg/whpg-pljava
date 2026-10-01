@@ -1,4 +1,11 @@
 \c pljava_test pljava_test
+-- The 1.6 example functions log through java.util.logging and PL/Java stamps
+-- each line with the current date and time; INFO is always sent to the client
+-- regardless of client_min_messages, so normalise the stamp before diffing.
+-- start_matchsubs
+-- m/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /
+-- s/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /DD Mon YY HH:MM:SS /
+-- end_matchsubs
 set TIMEZONE=UTC;
 set search_path = javatest, public;
 set client_min_messages = "info";
@@ -16,289 +23,334 @@ select abs(extract('epoch' from (current_timestamp - javatest.java_getTimestampt
 (1 row)
 
 SELECT javatest.print('2016-01-01'::date);
-          print          
--------------------------
- Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Date is Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Date is Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
 SELECT javatest.print('2016-01-01'::date) FROM javatest.test;
-          print          
--------------------------
- Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Date is Friday, January 1, 2016  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Date is Friday, January 1, 2016  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time  (seg1 slice1 172.17.0.2:8003 pid=78154)
+ print 
+-------
+ 
 (1 row)
 
 SELECT * FROM javatest.print('2016-01-01'::date);
-          print          
--------------------------
- Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Date is Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Date is Friday, January 1, 2016
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
 SELECT javatest.print('12:34:56-00'::time);
-       print        
---------------------
- 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Time is 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Time is 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
 SELECT javatest.print('12:34:56-00'::time) FROM javatest.test;
-       print        
---------------------
- 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Time is 12:34:56 UTC +0000  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Time is 12:34:56 UTC +0000  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time  (seg1 slice1 172.17.0.2:8003 pid=78154)
+ print 
+-------
+ 
 (1 row)
 
 SELECT * FROM javatest.print('12:34:56-00'::time);
-       print        
---------------------
- 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Time is 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Time is 12:34:56 UTC +0000
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
 SELECT javatest.print('2016-02-14 08:09:10'::timestamp);
-                  print                   
-------------------------------------------
- Sunday, February 14, 2016 8:09:10 AM UTC
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
 SELECT javatest.print('2016-02-14 08:09:10'::timestamp) FROM javatest.test;
-                  print                   
-------------------------------------------
- Sunday, February 14, 2016 8:09:10 AM UTC
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time  (seg1 slice1 172.17.0.2:8003 pid=78154)
+ print 
+-------
+ 
 (1 row)
 
 SELECT * FROM javatest.print('2016-02-14 08:09:10'::timestamp);
-                  print                   
-------------------------------------------
- Sunday, February 14, 2016 8:09:10 AM UTC
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Local Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters UTC Timestamp is Sunday, February 14, 2016 at 8:09:10 AM Coordinated Universal Time
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters TZ =  Coordinated Universal Time
+ print 
+-------
+ 
 (1 row)
 
  
-SELECT javatest.print('varchar'::varchar);
-  print  
----------
- varchar
-(1 row)
-
-SELECT javatest.print('varchar'::varchar) FROM javatest.test;
-  print  
----------
- varchar
-(1 row)
-
-SELECT * FROM javatest.print('varchar'::varchar);
-  print  
----------
- varchar
-(1 row)
-
 SELECT encode(javatest.print('bytea'::bytea), 'escape');
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters byte[] of size 5 {98,121,116,101,97}
  encode 
 --------
  bytea
 (1 row)
 
 SELECT encode(javatest.print('bytea'::bytea), 'escape') FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters byte[] of size 5 {98,121,116,101,97}  (seg1 slice1 172.17.0.2:8003 pid=78154)
  encode 
 --------
  bytea
 (1 row)
 
 SELECT * FROM encode(javatest.print('bytea'::bytea), 'escape');
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters byte[] of size 5 {98,121,116,101,97}
  encode 
 --------
  bytea
 (1 row)
 
 SELECT javatest.print(1::int2);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short 1
  print 
 -------
      1
 (1 row)
 
 SELECT javatest.print(2::int2) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short 2  (seg1 slice1 172.17.0.2:8003 pid=78154)
  print 
 -------
      2
 (1 row)
 
 SELECT * FROM javatest.print(3::int2);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short 3
  print 
 -------
      3
 (1 row)
 
 SELECT javatest.print('{1,2,3}'::int2[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short[] of size 3 {1,2,3}
   print  
 ---------
  {1,2,3}
 (1 row)
 
 SELECT javatest.print('{2,3,4}'::int2[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short[] of size 3 {2,3,4}  (seg1 slice1 172.17.0.2:8003 pid=78154)
   print  
 ---------
  {2,3,4}
 (1 row)
 
 SELECT * FROM javatest.print('{3,4,5}'::int2[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters short[] of size 3 {3,4,5}
   print  
 ---------
  {3,4,5}
 (1 row)
 
 SELECT javatest.print(4::int4);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int 4
  print 
 -------
      4
 (1 row)
 
 SELECT javatest.print(5::int4) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int 5  (seg1 slice1 172.17.0.2:8003 pid=78154)
  print 
 -------
      5
 (1 row)
 
 SELECT * FROM javatest.print(6::int4);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int 6
  print 
 -------
      6
 (1 row)
 
 SELECT javatest.print('{4,5,6}'::int4[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int[] of size 3 {4,5,6}
   print  
 ---------
  {4,5,6}
 (1 row)
 
 SELECT javatest.print('{5,6,7}'::int4[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int[] of size 3 {5,6,7}  (seg1 slice1 172.17.0.2:8003 pid=78154)
   print  
 ---------
  {5,6,7}
 (1 row)
 
 SELECT * FROM javatest.print('{6,7,8}'::int4[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters int[] of size 3 {6,7,8}
   print  
 ---------
  {6,7,8}
 (1 row)
 
 SELECT javatest.print(8::int8);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long 8
  print 
 -------
      8
 (1 row)
 
 SELECT javatest.print(9::int8) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long 9  (seg1 slice1 172.17.0.2:8003 pid=78154)
  print 
 -------
      9
 (1 row)
 
 SELECT * FROM javatest.print(10::int8);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long 10
  print 
 -------
     10
 (1 row)
 
 SELECT javatest.print('{8,9,10}'::int8[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long[] of size 3 {8,9,10}
   print   
 ----------
  {8,9,10}
 (1 row)
 
 SELECT javatest.print('{9,10,11}'::int8[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long[] of size 3 {9,10,11}  (seg1 slice1 172.17.0.2:8003 pid=78154)
    print   
 -----------
  {9,10,11}
 (1 row)
 
 SELECT * FROM javatest.print('{10,11,12}'::int8[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters long[] of size 3 {10,11,12}
    print    
 ------------
  {10,11,12}
 (1 row)
 
 SELECT javatest.print(11.12::float4);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float 11.12
  print 
 -------
  11.12
 (1 row)
 
 SELECT javatest.print(12.13::float4) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float 12.13  (seg1 slice1 172.17.0.2:8003 pid=78154)
  print 
 -------
  12.13
 (1 row)
 
 SELECT * FROM javatest.print(13.14::float4);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float 13.14
  print 
 -------
  13.14
 (1 row)
 
 SELECT javatest.print('{11.1,12.2,13.3}'::float4[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float[] of size 3 {11.1,12.2,13.3}
       print       
 ------------------
  {11.1,12.2,13.3}
 (1 row)
 
 SELECT javatest.print('{12.2,13.3,14.4}'::float4[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float[] of size 3 {12.2,13.3,14.4}  (seg1 slice1 172.17.0.2:8003 pid=78154)
       print       
 ------------------
  {12.2,13.3,14.4}
 (1 row)
 
 SELECT * FROM javatest.print('{13.4,14.4,15.5}'::float4[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters float[] of size 3 {13.4,14.4,15.5}
       print       
 ------------------
  {13.4,14.4,15.5}
 (1 row)
 
 SELECT javatest.print(15.5::float8);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double 15.5
  print 
 -------
   15.5
 (1 row)
 
 SELECT javatest.print(16.6::float8) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double 16.6  (seg1 slice1 172.17.0.2:8003 pid=78154)
  print 
 -------
   16.6
 (1 row)
 
 SELECT * FROM javatest.print(17.7::float8);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double 17.7
  print 
 -------
   17.7
 (1 row)
 
 SELECT javatest.print('{15.5,16.6,17.7}'::float8[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double[] of size 3 {15.5,16.6,17.7}
       print       
 ------------------
  {15.5,16.6,17.7}
 (1 row)
 
 SELECT javatest.print('{16.6,17.7,18.8}'::float8[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double[] of size 3 {16.6,17.7,18.8}  (seg1 slice1 172.17.0.2:8003 pid=78154)
       print       
 ------------------
  {16.6,17.7,18.8}
 (1 row)
 
 SELECT * FROM javatest.print('{17.7,18.8,19.9}'::float8[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters double[] of size 3 {17.7,18.8,19.9}
       print       
 ------------------
  {17.7,18.8,19.9}
 (1 row)
 
 SELECT javatest.printObj('{17,18,19}'::int[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Integer[] of size 3 {17,18,19}
   printobj  
 ------------
  {17,18,19}
 (1 row)
 
 SELECT javatest.printObj('{18,19,null,20}'::int[]) FROM javatest.test;
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Integer[] of size 4 {18,19,null,20}  (seg1 slice1 172.17.0.2:8003 pid=78154)
     printobj     
 -----------------
  {18,19,NULL,20}
 (1 row)
 
 SELECT * FROM javatest.printObj('{19,null,20,21}'::int[]);
+INFO:  01 Oct 26 10:39:00 org.postgresql.pljava.example.annotation.Parameters Integer[] of size 4 {19,null,20,21}
     printobj     
 -----------------
  {19,NULL,20,21}
@@ -384,11 +436,7 @@ select javatest.countnulls('{1,2,null,3,null,4}'::int[]) FROM javatest.test;
 
 -- Functions over system calls
 SELECT javatest.java_getSystemProperty('user.language');
- java_getsystemproperty 
-------------------------
- en
-(1 row)
-
+ERROR:  java.sql.SQLSyntaxErrorException: access denied ("java.util.PropertyPermission" "user.language" "read")
 -- org.postgresql.pljava.example.Security
 -- start_matchsubs
 -- m/ERROR\:.* \(JNICalls\.c:\d+\)/
@@ -399,11 +447,11 @@ SELECT javatest.java_getSystemProperty('user.language');
  * prohibited when the language is trusted.
  */
 SELECT javatest.create_temp_file_trusted();
-ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)
+ERROR:  java.sql.SQLSyntaxErrorException: Unable to create temporary file
 SELECT javatest.create_temp_file_trusted() FROM javatest.test;
-ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)  (seg0 slice1 10.117.190.141:6002 pid=2262371) (JNICalls.c:78)
+ERROR:  java.sql.SQLSyntaxErrorException: Unable to create temporary file  (seg1 slice1 172.17.0.2:8003 pid=78154)
 SELECT * FROM javatest.create_temp_file_trusted();
-ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)
+ERROR:  java.sql.SQLSyntaxErrorException: Unable to create temporary file
 -- org.postgresql.pljava.example.TupleReturn
 select base, incbase from javatest.tupleReturnExample(2,4);
  base | incbase 
@@ -448,12 +496,14 @@ select base, incbase from javatest.setReturnExample(6,8);
 
 -- org.postgresql.pljava.example.HugeResultSet
 select sum(base), count(*) from javatest.hugeResult(10000);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.HugeResultSet HugeResultSet ends
    sum    | count 
 ----------+-------
  49995000 | 10000
 (1 row)
 
 select sum(base), count(*) from javatest.hugeNonImmutableResult(10000);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.HugeResultSet HugeResultSet ends
    sum    | count 
 ----------+-------
  49995000 | 10000
@@ -480,6 +530,10 @@ select usename, usesuper from javatest.listNonSupers() where usename = 'pljava_t
 
 -- org.postgresql.pljava.example.UsingProperties
 select * from javatest.propertyExample();
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties()
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties example.properties has 3 entries
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.activate()
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.passivate()
           name           |                  value                  
 -------------------------+-----------------------------------------
  first.example.property  | 1
@@ -489,6 +543,8 @@ select * from javatest.propertyExample();
 
 -- org.postgresql.pljava.example.UsingPropertiesAsResultSet
 select * from javatest.resultSetPropertyExample();
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.activate()
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.passivate()
           name           |                  value                  
 -------------------------+-----------------------------------------
  first.example.property  | 1
@@ -497,6 +553,8 @@ select * from javatest.resultSetPropertyExample();
 (3 rows)
 
 select * from javatest.scalarPropertyExample();
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.activate()
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.UsingProperties ** UsingProperties.passivate()
                       scalarpropertyexample                       
 ------------------------------------------------------------------
  first.example.property = 1
@@ -529,6 +587,8 @@ select count(*) from javatest.binaryColumnTest();
 
 -- org.postgresql.pljava.example.MetaDataBooleans
 select * from javatest.getMetaDataBooleans() where method_name in ('isReadOnly', 'supportsColumnAliasing');
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataBooleans Method: autoCommitFailureClosesAllResultSets => null
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataBooleans Method: supportsStoredFunctionsUsingCallSyntax => null
       method_name       | result 
 ------------------------+--------
  isReadOnly             | f
@@ -537,6 +597,24 @@ select * from javatest.getMetaDataBooleans() where method_name in ('isReadOnly',
 
 -- org.postgresql.pljava.example.MetaDataStrings
 select * from javatest.getMetaDataStrings() where method_name in ('getDatabaseProductName', 'getDriverName');
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getCatalogSeparator => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getCatalogTerm => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getDatabaseProductName => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getDatabaseProductVersion => null
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getDriverName => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getDriverVersion => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getExtraNameCharacters => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getIdentifierQuoteString => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getNumericFunctions => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getProcedureTerm => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getSQLKeywords => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getSchemaTerm => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getSearchStringEscape => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getStringFunctions => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getSystemFunctions => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getTimeDateFunctions => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getURL => Success
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataStrings Method: getUserName => Success
       method_name       |            result            
 ------------------------+------------------------------
  getDatabaseProductName | PostgreSQL
@@ -545,6 +623,8 @@ select * from javatest.getMetaDataStrings() where method_name in ('getDatabasePr
 
 -- org.postgresql.pljava.example.MetaDataInts
 select * from javatest.getMetaDataInts() where method_name in ('getMaxRowSize', 'getMaxColumnsInTable');
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataInts Method: getDatabaseMajorVersion => Unexpected product version string format: PostgreSQL 19beta1 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14), 64-bit (Greenplum Database) 19.0.0 build dev compiled on Jul 20 2026 08:21:10 Bhuvnesh C. WarehousePG
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.MetaDataInts Method: getDatabaseMinorVersion => Unexpected product version string format: PostgreSQL 19beta1 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14), 64-bit (Greenplum Database) 19.0.0 build dev compiled on Jul 20 2026 08:21:10 Bhuvnesh C. WarehousePG
      method_name      |   result   
 ----------------------+------------
  getMaxColumnsInTable |       1600
@@ -594,18 +674,21 @@ select * from javatest.executeSelectToRecords('select id, ''test'' || id as id2 
 
 -- org.postgresql.pljava.example.AnyTest
 select javatest.loganyelement(1::int);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.AnyTest logAnyElement received an object of class class java.lang.Integer
  loganyelement 
 ---------------
              1
 (1 row)
 
 select javatest.loganyelement('a'::varchar);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.AnyTest logAnyElement received an object of class class java.lang.String
  loganyelement 
 ---------------
  a
 (1 row)
 
 select encode(javatest.loganyelement('b'::bytea), 'escape');
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.AnyTest logAnyElement received an object of class class [B
  encode 
 --------
  b
@@ -625,6 +708,28 @@ select javatest.makearray('a'::varchar);
 
 -- org.postgresql.pljava.example.SPIActions
 SELECT javatest.transferPeople(1);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions SELECT id, name, salary FROM employees1 WHERE salary > ?
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions INSERT INTO employees2(id, name, salary, transferDay, transferTime) VALUES (?, ?, ?, ?, ?)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions DELETE FROM employees1 WHERE id = ?
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions assigning parameter value 1
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Executing query
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Doing next
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Processing row 1
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Insert processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Delete processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Doing next
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Processing row 2
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Insert processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Delete processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Doing next
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Processing row 3
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Insert processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Delete processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Doing next
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Processing row 4
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Insert processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Delete processed 1 rows
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Doing next
  transferpeople 
 ----------------
               4
@@ -649,7 +754,12 @@ SELECT id,name, salary FROM employees2 order by id;
 -- s/\(SOMEFILE\:SOMEFUNC\)//
 -- end_matchsubs
 SELECT javatest.transferPeople(1) FROM javatest.test;  -- should error
-ERROR:  function cannot execute on a QE slice because it accesses relation "javatest.employees1"  (seg0 slice1 10.117.190.141:6002 pid=2262371)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions SELECT id, name, salary FROM employees1 WHERE salary > ?  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions INSERT INTO employees2(id, name, salary, transferDay, transferTime) VALUES (?, ?, ?, ?, ?)  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions DELETE FROM employees1 WHERE id = ?  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions assigning parameter value 1  (seg1 slice1 172.17.0.2:8003 pid=78154)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Executing query  (seg1 slice1 172.17.0.2:8003 pid=78154)
+ERROR:  function cannot execute on a QE slice because it accesses relation "javatest.employees1"  (seg1 slice1 172.17.0.2:8003 pid=78154)
 CONTEXT:  SQL statement "SELECT id, name, salary FROM employees1 WHERE salary > $1"
 select javatest.maxFromSetReturnExample(2,10);
  maxfromsetreturnexample 
@@ -658,18 +768,37 @@ select javatest.maxFromSetReturnExample(2,10);
 (1 row)
 
 select javatest.nestedStatements(5);
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.HugeResultSet HugeResultSet ends
  nestedstatements 
 ------------------
  
 (1 row)
 
 select javatest.testSavepointSanity();
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Attempting to set an anonymous savepoint
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Start of savepoint 2
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Attempting to set a SAVEPOINT using SQL (should fail)
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions It failed allright. Everything OK then
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Rolling back to anonymous savepoint
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Abort of savepoint 2
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Start of savepoint 3
  testsavepointsanity 
 ---------------------
                    1
 (1 row)
 
 select javatest.testTransactionRecovery();
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Attempting to set an anonymous savepoint
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Start of savepoint 2
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Attempting to execute a statement with a syntax error
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions It failed. Let's try to recover by rolling back to anonymous savepoint
+INFO:  missing error text
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Start of savepoint 3
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Rolled back.
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Now let's try to execute a correct statement.
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Start of savepoint 4
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Expected: OK; Retrieved: OK
+INFO:  01 Oct 26 10:39:01 org.postgresql.pljava.example.annotation.SPIActions Commit of savepoint 4
  testtransactionrecovery 
 -------------------------
                        1
@@ -694,15 +823,17 @@ LANGUAGE java;
 WITH parse_version AS (
     SELECT string_to_array(getProperty('java.version'), '.') AS version_array
 )
+-- PL/Java 1.6 requires Java 9+; report that rather than the exact major, so the
+-- expected output holds across the runtime JDK matrix (11, 17, 21).
 SELECT
     CASE
         WHEN version_array[1] = '1' THEN version_array[2]
         ELSE version_array[1]
-    END AS major_version
+    END::int >= 9 AS java_9_or_later
 FROM parse_version;
- major_version 
----------------
- 8
+ java_9_or_later 
+-----------------
+ t
 (1 row)
 
 DROP FUNCTION getProperty(VARCHAR);

@@ -41,7 +41,10 @@ build:
 # set it is given a pg_config wrapper that reports every path with the install
 # prefix replaced by DESTDIR, so the result is laid out GPHOME-relative
 # (lib/postgresql, share/postgresql, ...) - the shape a gppkg payload needs.
-prefix := $(shell $(PG_CONFIG) --prefix)
+# GPDB's pg_config has no --prefix; derive it from --bindir. Assigned after the
+# PGXS include on purpose: Makefile.global's prefix is the configure-time value,
+# not where this installation actually lives.
+prefix := $(patsubst %/bin,%,$(shell $(PG_CONFIG) --bindir))
 install:
 ifeq ($(DESTDIR),)
 	java -jar '$(INSTALLER)'
