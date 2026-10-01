@@ -2,13 +2,20 @@
 -- The 1.6 example functions log through java.util.logging and PL/Java stamps
 -- each line with the current date and time; INFO is always sent to the client
 -- regardless of client_min_messages, so normalise the stamp before diffing.
+-- atmsort strips the segment suffix from ERROR/NOTICE/WARNING lines but not from
+-- INFO, which the 1.6 examples use; host, port and pid vary per cluster.
+-- The MetaDataInts example cannot parse WarehousePG's version() string and
+-- quotes it in an INFO line: build host, architecture and compile date, which
+-- differ between a developer build and the packaged server.
+-- Prose must stay outside the block: atmsort pairs its lines positionally, so
+-- a comment inside it silently disables the rules that follow.
 -- start_matchsubs
 -- m/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /
 -- s/\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} /DD Mon YY HH:MM:SS /
--- atmsort strips the segment suffix from ERROR/NOTICE/WARNING lines but not from
--- INFO, which the 1.6 examples use; host, port and pid vary per cluster.
 -- m/\(seg\d+ slice\d+ [\d.]+:\d+ pid=\d+\)/
 -- s/\(seg\d+ slice\d+ [\d.]+:\d+ pid=\d+\)/(segN sliceN HOST:PORT pid=N)/
+-- m/Unexpected product version string format: .*/
+-- s/Unexpected product version string format: .*/Unexpected product version string format: VERSION_STRING/
 -- end_matchsubs
 set TIMEZONE=UTC;
 set search_path = javatest, public;
