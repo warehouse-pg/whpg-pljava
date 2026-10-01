@@ -7,6 +7,14 @@ SELECT sqlj.install_jar('file:@EXAMPLES_JAR@', 'examples', false);
 CREATE SCHEMA javatest AUTHORIZATION pljava_test;
 SELECT sqlj.set_classpath('javatest', 'examples');
 
+-- 1.6 revokes USAGE on the trusted language from PUBLIC; the tests run as
+-- pljava_test, so grant it back explicitly.
+GRANT USAGE ON LANGUAGE java TO pljava_test;
+-- pljava.control says schema = sqlj, so CREATE EXTENSION pre-creates the schema
+-- and PL/Java's own groundwork leaves its permissions untouched: public has no
+-- USAGE on sqlj, which the class loader needs when a non-superuser calls in.
+GRANT USAGE ON SCHEMA sqlj TO public;
+
 alter database pljava_test owner to pljava_test;
 
 \c pljava_test pljava_test
