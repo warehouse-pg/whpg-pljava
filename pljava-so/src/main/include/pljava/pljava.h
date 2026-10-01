@@ -158,6 +158,17 @@ PointerGetJLong(const void *X)
 	return (jlong)(uintptr_t)(X);
 }
 
+/*
+ * PostgreSQL 19 dropped AssertVariableIsOfTypeMacro from c.h. Keep the
+ * compile-time type check it provided for JLongGet on older servers, and
+ * express it directly where the macro is gone.
+ */
+#ifndef AssertVariableIsOfTypeMacro
+#define AssertVariableIsOfTypeMacro(varname, typename) \
+	((void) StaticAssertExpr(__builtin_types_compatible_p(__typeof__(varname), typename), \
+		CppAsString(varname) " does not have type " CppAsString(typename)))
+#endif
+
 #define JLongGet(T, X) \
 	(AssertVariableIsOfTypeMacro(X, jlong), (T)(uintptr_t)(X))
 
