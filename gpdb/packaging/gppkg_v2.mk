@@ -17,12 +17,7 @@ gppkg_spec_v2.yml: gppkg_spec_v2.yml.in
 %.gppkg: gppkg_spec_v2.yml
 	rm -rf gppkg_build 2>/dev/null
 	mkdir -p gppkg_build/files
-	$(MAKE) -C $(PLJAVA_DIR) install \
-		DESTDIR=$(PWD)/gppkg_build/files \
-		libdir=/lib/postgresql \
-		pkglibdir=/lib/postgresql \
-		datadir=/share/postgresql \
-		gpetcdir=/etc
+	$(MAKE) -C $(PLJAVA_DIR) install DESTDIR=$(PWD)/gppkg_build/files
 	$(GPPKG) build \
 		--input $(PWD)/gppkg_build/files \
 		--config gppkg_spec_v2.yml \

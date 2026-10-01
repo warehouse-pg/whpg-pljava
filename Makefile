@@ -37,15 +37,17 @@ REGRESS_DIR = $(top_builddir)
 build:
 	mvn -B clean install
 
-# `java -jar` installs through pg_config into pkglibdir/sharedir. DESTDIR is
-# honoured by pointing it at a pg_config wrapper that prefixes every path, which
-# is what gpdb/packaging uses to stage the gppkg payload.
+# `java -jar` installs through pg_config into pkglibdir/sharedir. With DESTDIR
+# set it is given a pg_config wrapper that reports every path with the install
+# prefix replaced by DESTDIR, so the result is laid out GPHOME-relative
+# (lib/postgresql, share/postgresql, ...) - the shape a gppkg payload needs.
+prefix := $(shell $(PG_CONFIG) --prefix)
 install:
 ifeq ($(DESTDIR),)
 	java -jar '$(INSTALLER)'
 else
 	$(MKDIR_P) '$(DESTDIR)'
-	printf '#!/bin/sh\nexec $(PG_CONFIG) "$$@" | sed "s|^|$(DESTDIR)|"\n' > '$(DESTDIR)/.pg_config' && chmod 755 '$(DESTDIR)/.pg_config'
+	printf '#!/bin/sh\nexec $(PG_CONFIG) "$$@" | sed "s|^$(prefix)|$(DESTDIR)|"\n' > '$(DESTDIR)/.pg_config' && chmod 755 '$(DESTDIR)/.pg_config'
 	java -Dpgconfig='$(DESTDIR)/.pg_config' -jar '$(INSTALLER)'
 	rm -f '$(DESTDIR)/.pg_config'
 endif

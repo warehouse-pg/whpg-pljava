@@ -21,7 +21,8 @@ include $(PLJAVA_DIR)/release.mk
 PLJAVA_GPPKG:=pljava-$(PLJAVA_PIVOTAL_VERSION)-gp$(GP_VERSION_NUM)-$(OS)_$(ARCH).gppkg
 export PLJAVA_GPPKG
 
-ifeq ($(GP_MAJORVERSION), 7)
+# gppkg v2 is the format from 7X on; WHPG19 reports GP_MAJORVERSION=19.
+ifeq ($(shell test -n '$(GP_MAJORVERSION)' && test '$(GP_MAJORVERSION)' -ge 7 && echo yes), yes)
 include gppkg_v2.mk
 else
 
