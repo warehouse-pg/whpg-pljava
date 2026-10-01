@@ -47,7 +47,7 @@ static jvalue _booleanArray_coerceDatum(Type self, Datum arg)
 	{
 		jsize idx;
 		jboolean isCopy = JNI_FALSE;
-		bits8* nullBitMap = ARR_NULLBITMAP(v);
+		uint8* nullBitMap = ARR_NULLBITMAP(v);
 		jboolean* values = (jboolean*)ARR_DATA_PTR(v);
 		jboolean* elems  = JNI_getBooleanArrayElements(booleanArray, &isCopy);
 		for(idx = 0; idx < nElems; ++idx)

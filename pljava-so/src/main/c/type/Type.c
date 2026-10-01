@@ -30,6 +30,19 @@
 #include "pljava/HashMap.h"
 #include "pljava/SPI.h"
 
+#if PG_VERSION_NUM >= 190000
+/*
+ * PG19 added an out-parameter to DomainHasConstraints() reporting constraint
+ * volatility, which the one call site here does not need.
+ */
+#define DomainHasConstraints(x) DomainHasConstraints_pljava_shim(x)
+static inline bool DomainHasConstraints_pljava_shim(Oid type_id)
+{
+	bool unused_has_volatile;
+	return (DomainHasConstraints)(type_id, &unused_has_volatile);
+}
+#endif
+
 #if PG_VERSION_NUM < 110000
 static Oid BOOLARRAYOID;
 static Oid CHARARRAYOID;

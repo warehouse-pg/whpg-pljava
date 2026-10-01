@@ -15,6 +15,21 @@
 #include <miscadmin.h>
 #ifndef WIN32
 #include <libpq/pqsignal.h>
+#include <storage/procsignal.h>
+#include <pthread.h>
+
+/*
+ * PostgreSQL 19 widened the signal handler signature to
+ * (int, const pg_signal_info *) and spells it SIGNAL_ARGS / PASS_SIGNAL_ARGS.
+ * Older servers define SIGNAL_ARGS too (as just the int) but not
+ * PASS_SIGNAL_ARGS; the fallbacks keep the handlers building everywhere.
+ */
+#ifndef SIGNAL_ARGS
+ #define SIGNAL_ARGS int postgres_signal_arg
+#endif
+#ifndef PASS_SIGNAL_ARGS
+ #define PASS_SIGNAL_ARGS postgres_signal_arg
+#endif
 #endif
 #include <executor/spi.h>
 #include <commands/trigger.h>
@@ -104,6 +119,9 @@ extern PLJAVADLLEXPORT void _PG_init(void);
 MemoryContext JavaMemoryContext;
 
 static JavaVM* s_javaVM = 0;
+/* MPP-23735: main backend thread, the only one allowed to run SIGUSR1 work. */
+static pthread_t s_mainThreadIdForHandler;
+static bool      s_handlerSubstituted = false;
 static jclass  s_Backend_class;
 static bool    s_startingVM;
 
@@ -195,9 +213,9 @@ static void reLogWithChangedLevel(int);
 #endif
 
 #ifdef USE_PLJAVA_SIGHANDLERS
-static void pljavaStatementCancelHandler(int);
-static void pljavaDieHandler(int);
-static void pljavaQuickDieHandler(int);
+static void pljavaStatementCancelHandler(SIGNAL_ARGS);
+static void pljavaDieHandler(SIGNAL_ARGS);
+static void pljavaQuickDieHandler(SIGNAL_ARGS);
 #endif
 
 enum initstage
@@ -1154,6 +1172,9 @@ static void onJVMExitOrAbort()
 	 * already-gone JVM if this reference is non-null.
 	 */
 	s_javaVM = NULL;
+	/* MPP-23735: no JVM, no JVM threads - give SIGUSR1 back to the server. */
+	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
+	s_handlerSubstituted = false;
 	/*
 	 * This does a PostgreSQL UnregisterResourceReleaseCallback, which should
 	 * be painless if the callback hasn't been registered yet. The key is to
@@ -1363,7 +1384,7 @@ static char* getModulePath(const char* prefix)
 
 #ifdef USE_PLJAVA_SIGHANDLERS
 
-static void pljavaStatementCancelHandler(int signum)
+static void pljavaStatementCancelHandler(SIGNAL_ARGS)
 {
 	if(!proc_exit_inprogress)
 	{
@@ -1376,7 +1397,7 @@ static void pljavaStatementCancelHandler(int signum)
 	}
 }
 
-static void pljavaDieHandler(int signum)
+static void pljavaDieHandler(SIGNAL_ARGS)
 {
 	if(!proc_exit_inprogress)
 	{
@@ -1389,11 +1410,30 @@ static void pljavaDieHandler(int signum)
 	}
 }
 
-static void pljavaQuickDieHandler(int signum)
+static void pljavaQuickDieHandler(SIGNAL_ARGS)
 {
 	/* Just die. No ereporting here since we don't know what thread this is.
 	 */
 	exit(1);
+}
+
+/*
+ * MPP-23735. PL/Java substitutes the backend's SIGUSR1 handler so that the
+ * real procsignal/catchup work - which takes LWLocks and is unsafe off the
+ * main thread - only ever runs on the main backend thread. A signal that
+ * lands on a JVM-internal thread is forwarded to the main thread instead.
+ *
+ * pqsignal() no longer returns the previously installed handler (PG19 keeps
+ * its dispatch table private), so the real handler is called by name:
+ * procsignal_sigusr1_handler() is what postgres.c installs for SIGUSR1 on
+ * every WarehousePG line.
+ */
+static void PLCatchupInterruptHandler(SIGNAL_ARGS)
+{
+	if(pthread_equal(pthread_self(), s_mainThreadIdForHandler))
+		procsignal_sigusr1_handler(PASS_SIGNAL_ARGS);
+	else
+		pthread_kill(s_mainThreadIdForHandler, postgres_signal_arg);
 }
 
 static sigjmp_buf recoverBuf;
@@ -1429,6 +1469,9 @@ static void _destroyJavaVM(int status, Datum dummy)
 			elog(DEBUG2,
 				"needed to forcibly shut down the Java virtual machine");
 			s_javaVM = 0;
+			/* MPP-23735: no JVM, no JVM threads - give SIGUSR1 back to the server. */
+			pqsignal(SIGUSR1, procsignal_sigusr1_handler);
+			s_handlerSubstituted = false;
 			currentInvocation = 0;
 			return;
 		}
@@ -1447,6 +1490,9 @@ static void _destroyJavaVM(int status, Datum dummy)
 #endif
 		elog(DEBUG2, "done shutting down the Java virtual machine");
 		s_javaVM = 0;
+		/* MPP-23735: no JVM, no JVM threads - give SIGUSR1 back to the server. */
+		pqsignal(SIGUSR1, procsignal_sigusr1_handler);
+		s_handlerSubstituted = false;
 		currentInvocation = 0;
 	}
 }
@@ -1923,6 +1969,16 @@ internalCallHandler(bool trusted, PG_FUNCTION_ARGS)
 	 * handler function entries later if needed.
 	 */
 	*(trusted ? &pljavaTrustedOid : &pljavaUntrustedOid) = funcoid;
+
+#ifdef USE_PLJAVA_SIGHANDLERS
+	/* MPP-23735: route SIGUSR1 through the main-thread-only handler. */
+	if(!s_handlerSubstituted)
+	{
+		s_mainThreadIdForHandler = pthread_self();
+		pqsignal(SIGUSR1, PLCatchupInterruptHandler);
+		s_handlerSubstituted = true;
+	}
+#endif
 	if ( IS_COMPLETE != initstage )
 	{
 		deferInit = false;

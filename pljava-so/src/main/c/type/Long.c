@@ -54,7 +54,7 @@ static jvalue _longArray_coerceDatum(Type self, Datum arg)
 	{
 		jsize idx;
 		jboolean isCopy = JNI_FALSE;
-		bits8* nullBitMap = ARR_NULLBITMAP(v);
+		uint8* nullBitMap = ARR_NULLBITMAP(v);
 		jlong* values = (jlong*)ARR_DATA_PTR(v);
 		jlong* elems  = JNI_getLongArrayElements(longArray, &isCopy);
 		for(idx = 0; idx < nElems; ++idx)

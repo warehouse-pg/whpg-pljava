@@ -23,8 +23,8 @@ extern "C" {
  ***********************************************************************/
 
 extern ArrayType* createArrayType(jsize nElems, size_t elemSize, Oid elemType, bool withNulls);
-extern void arraySetNull(bits8* bitmap, int offset, bool flag);
-extern bool arrayIsNull(const bits8* bitmap, int offset);
+extern void arraySetNull(uint8* bitmap, int offset, bool flag);
+extern bool arrayIsNull(const uint8* bitmap, int offset);
 
 extern Type Array_fromOid(Oid typeId, Type elementType);
 extern Type Array_fromOid2(Oid typeId, Type elementType, DatumCoercer coerceDatum, ObjectCoercer coerceObject);

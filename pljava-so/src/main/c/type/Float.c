@@ -54,7 +54,7 @@ static jvalue _floatArray_coerceDatum(Type self, Datum arg)
 	{
 		jsize idx;
 		jboolean isCopy = JNI_FALSE;
-		bits8* nullBitMap = ARR_NULLBITMAP(v);
+		uint8* nullBitMap = ARR_NULLBITMAP(v);
 		jfloat* values = (jfloat*)ARR_DATA_PTR(v);
 		jfloat* elems  = JNI_getFloatArrayElements(floatArray, &isCopy);
 		for(idx = 0; idx < nElems; ++idx)
