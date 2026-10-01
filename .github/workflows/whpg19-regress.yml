@@ -1,0 +1,100 @@
+name: WHPG19 regress
+
+# Gate for the whpg-19 branch: PL/Java 1.6.x on WarehousePG 19 only. The
+# 1.5-based `whpg` branch keeps serving WarehousePG 6 and 7, which the 1.6
+# series cannot (it requires PostgreSQL 9.5+, and WarehousePG 6 is 9.4).
+#
+# whpg-extensions-packaging has no WHPG19 lane, so this is the only gate for
+# this line.
+
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  push:
+    branches: [whpg]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+    inputs:
+      whpg-server-image:
+        description: >-
+          Container image carrying an installed WarehousePG 19 at $GPHOME,
+          plus gpAux/gpdemo. Overrides the WHPG19_SERVER_IMAGE variable.
+        required: false
+        type: string
+
+env:
+  # Set this as a repository or organisation variable once a WHPG19 server
+  # image is published; until then the regress job below is skipped rather
+  # than run (see the `if:` on it).
+  SERVER_IMAGE: ${{ inputs.whpg-server-image || vars.WHPG19_SERVER_IMAGE }}
+  GPHOME: /usr/local/whpg
+  GPDEMO_SRC: /opt/gpdemo
+
+jobs:
+  # Always runs, so a PR gets a real signal even while the regress job below
+  # cannot. Catches the mistakes that are actually likely in these files.
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: for f in ci/*.sh; do bash -n "$f"; done
+      - name: Scripts are executable
+        run: |
+          for f in ci/run-regress.sh ci/mpp-signal-check.sh ci/entrypoint.sh; do
+            test -x "$f" || { echo "::error::$f is not executable"; exit 1; }
+          done
+
+  regress:
+    # Skipped, not failed, when no WHPG19 server image is configured. Failing
+    # here would put a red X on every PR until such an image exists, which
+    # just trains people to ignore it.
+    if: ${{ inputs.whpg-server-image != '' || vars.WHPG19_SERVER_IMAGE != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # PL/Java 1.6 builds with any JDK 9+; the lane builds with 17. The JVM
+        # the server loads is the axis that varies. Policy enforcement (the
+        # trusted-language sandbox) works on Java 9 through 23, so 24+ is not
+        # a target for this release (JEP 411 / JEP 486).
+        runtime-jdk: ["11", "17", "21"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sanity-check the server image is set
+        run: test -n "$SERVER_IMAGE"
+
+      - name: Build the pljava build image
+        run: |
+          docker build -f ci/Dockerfile \
+            --build-arg BASE_IMAGE="$SERVER_IMAGE" \
+            -t whpg-pljava-build:ci .
+
+      - name: Build with JDK 17, test on JVM ${{ matrix.runtime-jdk }}
+        run: |
+          docker run --rm --name pljava-ci-${{ matrix.runtime-jdk }} \
+            -v "$PWD:/home/gpadmin/pljava_src:rw" \
+            -e GPHOME -e GPDEMO_SRC \
+            -e BUILD_JDK=17 \
+            -e RUNTIME_JDK=${{ matrix.runtime-jdk }} \
+            -e SRC_DIR=/home/gpadmin/pljava_src \
+            -e RUN_MPP=${{ matrix.runtime-jdk == '17' && '1' || '' }} \
+            -u gpadmin \
+            whpg-pljava-build:ci \
+            /home/gpadmin/pljava_src/ci/run-regress.sh
+
+      - name: Upload regression.diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-diffs-jdk${{ matrix.runtime-jdk }}
+          path: gpdb/tests/regression.diffs
+          if-no-files-found: ignore
