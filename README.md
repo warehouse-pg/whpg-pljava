@@ -1,11 +1,49 @@
-This is version of PL/Java is modified by Greenplum.
+# WarehousePG PL/Java
 
-It is based on PL/Java 1.5.0 forked from:
-    https://github.com/tada/pljava/tree/V1_5_0
+## Introduction
 
-To generate the new release for enterprise PL/Java, version should follow 1.4.x for gpdb5 and 1.3.x for gpdb4.
-Version bump to 2.x.x for gpdb6
+PL/Java is a free add-on module that brings Java stored procedures, triggers,
+and functions to the backend of a distributed database like WarehousePG.
+Functions are written as static Java methods, packaged in jar files, and run
+inside a JVM in each database process, with access to the database through a
+JDBC-compatible interface.
 
-JDK requires >= 8
+This repository is a fork of the open-source Greenplum PL/Java project
+(github.com/greenplum-db/pljava-archive), renamed to whpg-pljava and maintained
+for WarehousePG.
 
-Note that except adding a new git tag, you also need to bump the version in release.mk
+It is based on PL/Java 1.5.0, originally forked from
+https://github.com/tada/pljava/tree/V1_5_0.
+
+## Requirements
+
+* WarehousePG, with its `pg_config` on your `PATH`
+* JDK 8 or later
+* Maven
+
+## Building and Testing
+
+```
+make                 # build with Maven
+make install         # install into the WarehousePG installation
+make installcheck    # run the regression tests in gpdb/tests
+```
+
+`make installcheck` needs a running WarehousePG cluster.
+
+## Versioning
+
+The PL/Java source version (`PLJAVA_OSS_VERSION` in `release.mk`) is 1.5.0.
+The package version, used for the gppkg, rpm, and deb packages, is kept in the
+`VERSION` file. Besides adding a new git tag, bump `VERSION` when making a
+release.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE-OF-CONDUCT.md). To report a security issue, see
+[SECURITY.md](SECURITY.md).
+
+## License
+
+BSD 3-Clause. See [LICENSE.md](LICENSE.md).
