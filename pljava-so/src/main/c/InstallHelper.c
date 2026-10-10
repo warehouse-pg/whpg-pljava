@@ -453,21 +453,15 @@ void InstallHelper_groundwork()
 	ctx.function = Function_INIT_WRITER;
 	PG_TRY();
 	{
-		char const *lpt = LOADPATH_TBL_NAME;
-		char const *lptq = quote_identifier(lpt);
 		jstring pljlp = String_createJavaStringFromNTS(pljavaLoadPath);
-		jstring jlpt = String_createJavaStringFromNTS(lpt);
-		jstring jlptq = String_createJavaStringFromNTS(lptq);
-		if ( lptq != lpt )
-			pfree((void *)lptq);
+		jstring jlpt = String_createJavaStringFromNTS(LOADPATH_TBL_NAME);
 		JNI_callStaticVoidMethod(
 			s_InstallHelper_class, s_InstallHelper_groundwork,
-			pljlp, jlpt, jlptq,
+			pljlp, jlpt,
 			pljavaLoadingAsExtension ? JNI_TRUE : JNI_FALSE,
 			extensionExNihilo ? JNI_TRUE : JNI_FALSE);
 		JNI_deleteLocalRef(pljlp);
 		JNI_deleteLocalRef(jlpt);
-		JNI_deleteLocalRef(jlptq);
 		Invocation_popInvocation(false);
 	}
 	PG_CATCH();
@@ -489,5 +483,5 @@ void InstallHelper_initialize()
 		"Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
 	s_InstallHelper_groundwork = PgObject_getStaticJavaMethod(
 		s_InstallHelper_class, "groundwork",
-		"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZ)V");
+		"(Ljava/lang/String;Ljava/lang/String;ZZ)V");
 }
