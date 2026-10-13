@@ -28,7 +28,6 @@ import static java.sql.Types.VARCHAR;
 
 import org.postgresql.pljava.jdbc.SQLUtils;
 import org.postgresql.pljava.management.SQLDeploymentDescriptor;
-import static org.postgresql.pljava.sqlgen.DDRWriter.eQuote;
 
 /**
  * Group of methods intended to streamline the PL/Java installation/startup
@@ -129,7 +128,7 @@ public class InstallHelper
 	}
 
 	public static void groundwork(
-		String module_pathname, String loadpath_tbl, String loadpath_tbl_quoted,
+		String module_pathname, String loadpath_tbl,
 		boolean asExtension, boolean exNihilo)
 	throws SQLException, ParseException
 	{
@@ -166,13 +165,44 @@ public class InstallHelper
 				 * create it again, which will cause a (cryptic, but reliable)
 				 * error if this code didn't execute.
 				 */
-				s.execute("DROP TABLE sqlj." + loadpath_tbl_quoted);
+				executeFormatted(c, s, "DROP TABLE sqlj.%I", loadpath_tbl);
 		}
 		finally
 		{
 			SQLUtils.close(s);
 			SQLUtils.close(c);
 		}
+	}
+
+	/**
+	 * Execute a utility statement built from a constant template and one value
+	 * that is quoted by the server, never by concatenation here. Utility
+	 * statements cannot take bind parameters, so the value is bound instead to
+	 * {@code pg_catalog.format}, whose {@code %I} or {@code %L} conversion in
+	 * the template quotes it as an identifier or a literal.
+	 */
+	private static void executeFormatted(
+		Connection c, Statement s, String template, String arg)
+	throws SQLException
+	{
+		String sql;
+		PreparedStatement ps = c.prepareStatement(
+			"SELECT pg_catalog.format(" +
+			"CAST(? AS pg_catalog.text), CAST(? AS pg_catalog.text))");
+		try
+		{
+			ps.setString(1, template);
+			ps.setString(2, arg);
+			ResultSet rs = ps.executeQuery();
+			rs.next();
+			sql = rs.getString(1);
+			rs.close();
+		}
+		finally
+		{
+			SQLUtils.close(ps);
+		}
+		s.execute(sql);
 	}
 
 	private static void schema( Connection c, Statement s)
@@ -201,11 +231,11 @@ public class InstallHelper
 	private static void handlers( Connection c, Statement s, String module_path)
 	throws SQLException
 	{
-		s.execute(
+		executeFormatted(c, s,
 			"CREATE OR REPLACE FUNCTION sqlj.java_call_handler()" +
 			" RETURNS language_handler" +
-			" AS " + eQuote(module_path) +
-			" LANGUAGE C");
+			" AS %L" +
+			" LANGUAGE C", module_path);
 		s.execute("REVOKE ALL PRIVILEGES" +
 			" ON FUNCTION sqlj.java_call_handler() FROM public");
 		ResultSet rs = s.executeQuery(
@@ -222,11 +252,11 @@ public class InstallHelper
 				"Function-call handler for PL/Java''s trusted/sandboxed " +
 				"language.'");
 
-		s.execute(
+		executeFormatted(c, s,
 			"CREATE OR REPLACE FUNCTION sqlj.javau_call_handler()" +
 			" RETURNS language_handler" +
-			" AS " + eQuote(module_path) +
-			" LANGUAGE C");
+			" AS %L" +
+			" LANGUAGE C", module_path);
 		s.execute("REVOKE ALL PRIVILEGES" +
 			" ON FUNCTION sqlj.javau_call_handler() FROM public");
 		rs = s.executeQuery(
