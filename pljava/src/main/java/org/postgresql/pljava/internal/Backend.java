@@ -21,6 +21,7 @@ import java.net.URLConnection;
 import java.security.Permission;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.PropertyPermission;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -275,6 +276,13 @@ public class Backend
 	public static void addClassImages(int jarId, String urlString)
 	throws SQLException
 	{
+		// Opening the URL uses the server's file and network access, so
+		// only a superuser may do it, however this method is reached.
+		if(!AclId.getOuterUser().isSuperuser())
+			throw new SQLSyntaxErrorException( // yeah, for 42501, really
+				"Permission denied. Only a super user can install or " +
+				"replace a jar from a URL", "42501");
+
 		InputStream urlStream = null;
 		boolean wasTrusted = (System.getSecurityManager() == s_trustedSecurityManager);
 
