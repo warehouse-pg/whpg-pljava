@@ -157,6 +157,15 @@ EXCEPTION WHEN OTHERS THEN
 END
 $$ LANGUAGE plpgsql;
 
+/*
+ * Backend.addClassImages() opens a URL, so only a superuser may call it,
+ * also through a trusted function bound to it directly.
+ */
+CREATE FUNCTION javatest.add_class_images(integer, varchar)
+	RETURNS void
+	AS 'org.postgresql.pljava.internal.Backend.addClassImages'
+	LANGUAGE java;
+
 /* Not executed on top of GPDB due to lack of interest in triggers
 
 -- org.postgresql.pljava.example.Triggers

@@ -119,6 +119,11 @@ SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib
 SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/passwd');
 SELECT javatest.read_check('/etc/passwd');
 
+/*
+ * Only a superuser may open a jar URL.
+ */
+SELECT javatest.add_class_images(0, 'file:///etc/passwd');
+
 -- org.postgresql.pljava.example.TupleReturn
 
 select base, incbase from javatest.tupleReturnExample(2,4);
