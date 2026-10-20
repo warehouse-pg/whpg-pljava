@@ -176,6 +176,19 @@ public class Backend
 	private static final SecurityManager s_untrustedSecurityManager = new PLJavaSecurityManager();
 
 	/**
+	 * Returns <code>true</code> if any element of the path is "..".
+	 */
+	private static boolean hasDotDot(File f)
+	{
+		for ( ; f != null; f = f.getParentFile())
+		{
+			if ("..".equals(f.getName()))
+				return true;
+		}
+		return false;
+	}
+
+	/**
 	 * This security manager will block all attempts to access the file system
 	 */
 	private static final SecurityManager s_trustedSecurityManager = new PLJavaSecurityManager()
@@ -201,31 +214,55 @@ public class Backend
 					// Must be able to read
 					// timezone info etc. in the
 					// java installation
-					// directory.
+					// directory, and the jars in
+					// $libdir/java and in
+					// pljava_classpath.
 					//
 					String classpath = Backend._getConfigOption("pljava_classpath");
 					String[] classpathArray = classpath.split(":");
 					String jarpath =  Backend.getLibraryPath() + "/java";
 
-					File gpJavaLib = new File(jarpath);
-					File javaHome = new File(System.getProperty("java.home"));
-					File accessedFile = new File(perm.getName());
-					File fileDir = accessedFile.getParentFile();
-					while(fileDir != null)
+					File[] roots = new File[classpathArray.length + 2];
+					roots[0] = new File(System.getProperty("java.home"));
+					roots[1] = new File(jarpath);
+					// relative entries are under $libdir/java, as in sqlj.Loader
+					for (int i = 0; i < classpathArray.length; i++)
 					{
-						if(fileDir.equals(javaHome))
-							return;
-						if(fileDir.equals(gpJavaLib))
-							return;
-						// now search through the classpaths
-						for (int i = 0; i < classpathArray.length; i++)
+						File classPathEntry = new File(classpathArray[i]);
+						if (!classPathEntry.isAbsolute())
+							classPathEntry = new File(jarpath, classpathArray[i]);
+						roots[i + 2] = classPathEntry;
+					}
+
+					// A ".." in the name is resolved by the file system,
+					// possibly through a symbolic link, so such a name is
+					// only allowed if its canonical form is inside a
+					// canonical root.
+					//
+					File accessedFile = new File(fileName);
+					if (hasDotDot(accessedFile))
+					{
+						try
 						{
-							File classPathEntry = new File(classpathArray[i]);
-							// need to check to see if we can read the directory as well as read the actual file.
-							if (fileDir.equals(classPathEntry.getPath()) || fileDir.equals(classPathEntry.getParentFile()))
+							accessedFile = accessedFile.getCanonicalFile();
+							for (int i = 0; i < roots.length; i++)
+								roots[i] = roots[i].getCanonicalFile();
+						}
+						catch (IOException e)
+						{
+							throw new SecurityException(perm.getActions() + " on " + perm.getName());
+						}
+					}
+
+					// the file itself may be a root, such as a jar named in
+					// pljava_classpath
+					for (File f = accessedFile; f != null; f = f.getParentFile())
+					{
+						for (int i = 0; i < roots.length; i++)
+						{
+							if (f.equals(roots[i]))
 								return;
 						}
-						fileDir = fileDir.getParentFile();
 					}
 				}
 				throw new SecurityException(perm.getActions() + " on " + perm.getName());
