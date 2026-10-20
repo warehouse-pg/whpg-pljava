@@ -141,7 +141,21 @@ void Invocation_pushInvocation(Invocation* ctx, bool trusted)
 	ctx->previous        = currentInvocation;
 	ctx->callLocals      = 0;
 	currentInvocation   = ctx;
-	Backend_setJavaSecurity(trusted);
+	PG_TRY();
+	{
+		Backend_setJavaSecurity(trusted);
+	}
+	PG_CATCH();
+	{
+		/*
+		 * The caller has no invocation to pop yet, so undo the push here
+		 * rather than leave currentInvocation pointing at its stack frame.
+		 */
+		currentInvocation = ctx->previous;
+		JNI_popLocalFrame(0);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 	++s_callLevel;
 }
 
