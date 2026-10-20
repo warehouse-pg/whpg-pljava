@@ -20,6 +20,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.Permission;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.PropertyPermission;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -324,19 +325,35 @@ public class Backend
 	 * function.
 	 */
 	private static void setTrusted(boolean trusted)
+	throws SQLException
 	{
+		SecurityManager mgr =
+			trusted ? s_trustedSecurityManager : s_untrustedSecurityManager;
 		s_inSetTrusted = true;
 		try
 		{
 			Logger log = Logger.getAnonymousLogger();
 			if(log.isLoggable(Level.FINE))
 				log.fine("Using SecurityManager for " + (trusted ? "trusted" : "untrusted") + " language");
-			System.setSecurityManager(trusted ? s_trustedSecurityManager : s_untrustedSecurityManager);
+			System.setSecurityManager(mgr);
+			if ( System.getSecurityManager() == mgr )
+				return;
 		}
+		catch ( UnsupportedOperationException e ) { }
 		finally
 		{
 			s_inSetTrusted = false;
 		}
+		if ( ! trusted )
+			return;
+
+		throw new SQLFeatureNotSupportedException(
+			"PL/Java, when running on this version of Java, cannot " +
+			"execute trusted functions. Possible solutions: (1) run Java 17 " +
+			"or earlier; (2) on Java 18 through 23, add " +
+			"-Djava.security.manager=allow to pljava_vmoptions; (3) " +
+			"redeclare functions using the 'javau' (untrusted) PL/Java " +
+			"language.", "0A000");
 	}
 
 	/**
