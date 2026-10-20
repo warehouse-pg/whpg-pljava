@@ -404,6 +404,34 @@ SELECT javatest.create_temp_file_trusted() FROM javatest.test;
 ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)  (seg0 slice1 10.117.190.141:6002 pid=2293532) (JNICalls.c:78)
 SELECT * FROM javatest.create_temp_file_trusted();
 ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)
+/*
+ * Trusted reads stay inside java.home, $libdir/java and pljava_classpath,
+ * also when the name contains "..".
+ */
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/release');
+ read_check 
+------------
+ allowed
+(1 row)
+
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../release');
+ read_check 
+------------
+ allowed
+(1 row)
+
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/passwd');
+ read_check 
+------------
+ denied
+(1 row)
+
+SELECT javatest.read_check('/etc/passwd');
+ read_check 
+------------
+ denied
+(1 row)
+
 -- org.postgresql.pljava.example.TupleReturn
 select base, incbase from javatest.tupleReturnExample(2,4);
  base | incbase 
