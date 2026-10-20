@@ -21,6 +21,12 @@ https://github.com/tada/pljava/tree/V1_5_0.
 * JDK 8 or later
 * Maven
 
+The trusted `java` language is sandboxed by the Java SecurityManager. It works
+on JDK 17 or earlier, and on JDK 18 to 23 only with
+`-Djava.security.manager=allow` in `pljava_vmoptions`. On later JDKs trusted
+functions fail with an error; the untrusted `javaU` language does not need the
+SecurityManager.
+
 ## Building and Testing
 
 ```
