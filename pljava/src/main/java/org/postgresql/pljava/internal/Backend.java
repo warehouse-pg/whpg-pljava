@@ -20,6 +20,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.Permission;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.PropertyPermission;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -176,6 +178,19 @@ public class Backend
 	private static final SecurityManager s_untrustedSecurityManager = new PLJavaSecurityManager();
 
 	/**
+	 * Returns <code>true</code> if any element of the path is "..".
+	 */
+	private static boolean hasDotDot(File f)
+	{
+		for ( ; f != null; f = f.getParentFile())
+		{
+			if ("..".equals(f.getName()))
+				return true;
+		}
+		return false;
+	}
+
+	/**
 	 * This security manager will block all attempts to access the file system
 	 */
 	private static final SecurityManager s_trustedSecurityManager = new PLJavaSecurityManager()
@@ -201,31 +216,61 @@ public class Backend
 					// Must be able to read
 					// timezone info etc. in the
 					// java installation
-					// directory.
+					// directory, and the jars in
+					// $libdir/java and in
+					// pljava_classpath.
 					//
 					String classpath = Backend._getConfigOption("pljava_classpath");
 					String[] classpathArray = classpath.split(":");
 					String jarpath =  Backend.getLibraryPath() + "/java";
 
-					File gpJavaLib = new File(jarpath);
-					File javaHome = new File(System.getProperty("java.home"));
-					File accessedFile = new File(perm.getName());
-					File fileDir = accessedFile.getParentFile();
-					while(fileDir != null)
+					// With pljava_classpath_insecure any user can set
+					// pljava_classpath, so then its entries grant no reads;
+					// jars under $libdir/java are still covered.
+					if (Backend._isClasspathInsecure())
+						classpathArray = new String[0];
+
+					File[] roots = new File[classpathArray.length + 2];
+					roots[0] = new File(System.getProperty("java.home"));
+					roots[1] = new File(jarpath);
+					// relative entries are under $libdir/java, as in sqlj.Loader
+					for (int i = 0; i < classpathArray.length; i++)
 					{
-						if(fileDir.equals(javaHome))
-							return;
-						if(fileDir.equals(gpJavaLib))
-							return;
-						// now search through the classpaths
-						for (int i = 0; i < classpathArray.length; i++)
+						File classPathEntry = new File(classpathArray[i]);
+						if (!classPathEntry.isAbsolute())
+							classPathEntry = new File(jarpath, classpathArray[i]);
+						roots[i + 2] = classPathEntry;
+					}
+
+					// A ".." in the name is resolved by the file system,
+					// possibly through a symbolic link, so such a name is
+					// only allowed if its canonical form is inside a
+					// canonical root.
+					//
+					File accessedFile = new File(fileName);
+					if (hasDotDot(accessedFile))
+					{
+						try
 						{
-							File classPathEntry = new File(classpathArray[i]);
-							// need to check to see if we can read the directory as well as read the actual file.
-							if (fileDir.equals(classPathEntry.getPath()) || fileDir.equals(classPathEntry.getParentFile()))
+							accessedFile = accessedFile.getCanonicalFile();
+							for (int i = 0; i < roots.length; i++)
+								roots[i] = roots[i].getCanonicalFile();
+						}
+						catch (IOException e)
+						{
+							throw new SecurityException(perm.getActions() + " on " + perm.getName());
+						}
+					}
+
+					// the file itself may be a root, such as a jar named in
+					// pljava_classpath
+					for (File f = accessedFile; f != null; f = f.getParentFile())
+					{
+						for (int i = 0; i < roots.length; i++)
+						{
+							if (f.equals(roots[i]))
 								return;
 						}
-						fileDir = fileDir.getParentFile();
 					}
 				}
 				throw new SecurityException(perm.getActions() + " on " + perm.getName());
@@ -237,6 +282,13 @@ public class Backend
 	public static void addClassImages(int jarId, String urlString)
 	throws SQLException
 	{
+		// Opening the URL uses the server's file and network access, so
+		// only a superuser may do it, however this method is reached.
+		if(!AclId.getOuterUser().isSuperuser())
+			throw new SQLSyntaxErrorException( // yeah, for 42501, really
+				"Permission denied. Only a super user can install or " +
+				"replace a jar from a URL", "42501");
+
 		InputStream urlStream = null;
 		boolean wasTrusted = (System.getSecurityManager() == s_trustedSecurityManager);
 
@@ -287,19 +339,35 @@ public class Backend
 	 * function.
 	 */
 	private static void setTrusted(boolean trusted)
+	throws SQLException
 	{
+		SecurityManager mgr =
+			trusted ? s_trustedSecurityManager : s_untrustedSecurityManager;
 		s_inSetTrusted = true;
 		try
 		{
 			Logger log = Logger.getAnonymousLogger();
 			if(log.isLoggable(Level.FINE))
 				log.fine("Using SecurityManager for " + (trusted ? "trusted" : "untrusted") + " language");
-			System.setSecurityManager(trusted ? s_trustedSecurityManager : s_untrustedSecurityManager);
+			System.setSecurityManager(mgr);
+			if ( System.getSecurityManager() == mgr )
+				return;
 		}
+		catch ( UnsupportedOperationException e ) { }
 		finally
 		{
 			s_inSetTrusted = false;
 		}
+		if ( ! trusted )
+			return;
+
+		throw new SQLFeatureNotSupportedException(
+			"PL/Java, when running on this version of Java, cannot " +
+			"execute trusted functions. Possible solutions: (1) run Java 17 " +
+			"or earlier; (2) on Java 18 through 23, add " +
+			"-Djava.security.manager=allow to pljava_vmoptions; (3) " +
+			"redeclare functions using the 'javau' (untrusted) PL/Java " +
+			"language.", "0A000");
 	}
 
 	/**
@@ -317,6 +385,7 @@ public class Backend
 	public native static boolean isReleaseLingeringSavepoints();
 
 	private native static String _getConfigOption(String key);
+	private native static boolean _isClasspathInsecure();
 	private native static String _getLibraryPath();
 
 	private native static int  _getStatementCacheSize();

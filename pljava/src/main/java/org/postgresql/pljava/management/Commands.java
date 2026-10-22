@@ -656,7 +656,8 @@ public class Commands
 	 * Installs a new Jar in the database jar repository under name
 	 * {@code jarName}. Once installed classpaths can be defined that
 	 * refrences this jar. This method is exposed in SQL as
-	 * {@code sqlj.install_jar(VARCHAR, VARCHAR, BOOLEAN)}.
+	 * {@code sqlj.install_jar(VARCHAR, VARCHAR, BOOLEAN)}. Only a superuser
+	 * may install a jar from a URL.
 	 * 
 	 * @param urlString The location of the jar that will be installed.
 	 * @param jarName The name by which the system will refer to this jar.
@@ -745,7 +746,8 @@ public class Commands
 	/**
 	 * Replaces the image of jar named {@code jarName} in the database
 	 * jar repository. This method is exposed in SQL as
-	 * {@code sqlj.replace_jar(VARCHAR, VARCHAR, BOOLEAN)}.
+	 * {@code sqlj.replace_jar(VARCHAR, VARCHAR, BOOLEAN)}. Only a superuser
+	 * may replace a jar from a URL.
 	 * 
 	 * @param urlString The location of the jar that will be installed.
 	 * @param jarName The name by which the system referes this jar.

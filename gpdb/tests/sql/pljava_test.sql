@@ -110,6 +110,20 @@ SELECT javatest.create_temp_file_trusted();
 SELECT javatest.create_temp_file_trusted() FROM javatest.test;
 SELECT * FROM javatest.create_temp_file_trusted();
 
+/*
+ * Trusted reads stay inside java.home, $libdir/java and pljava_classpath,
+ * also when the name contains "..".
+ */
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/no-such-file');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../no-such-file');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/no-such-file');
+SELECT javatest.read_check('/etc/no-such-file');
+
+/*
+ * Only a superuser may open a jar URL.
+ */
+SELECT javatest.add_class_images(0, 'file:///etc/passwd');
+
 -- org.postgresql.pljava.example.TupleReturn
 
 select base, incbase from javatest.tupleReturnExample(2,4);

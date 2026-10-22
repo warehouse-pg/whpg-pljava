@@ -1,6 +1,6 @@
 -- cleanup schema and functions used by `create extension pljava`
 DROP SCHEMA IF EXISTS javatest CASCADE;
-NOTICE:  drop cascades to 64 other objects
+NOTICE:  drop cascades to 67 other objects
 DETAIL:  drop cascades to function javatest.java_gettimestamp()
 drop cascades to function javatest.java_gettimestamptz()
 drop cascades to function javatest.print(date)
@@ -26,6 +26,9 @@ drop cascades to function javatest.countnulls(record)
 drop cascades to function javatest.countnulls(integer[])
 drop cascades to function javatest.java_getsystemproperty(character varying)
 drop cascades to function javatest.create_temp_file_trusted()
+drop cascades to function javatest.java_load(character varying)
+drop cascades to function javatest.read_check(character varying)
+drop cascades to function javatest.add_class_images(integer,character varying)
 drop cascades to type javatest._testsetreturn
 drop cascades to function javatest.tuplereturnexample(integer,integer)
 drop cascades to function javatest.tuplereturnexample2(integer,integer)

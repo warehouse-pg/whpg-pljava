@@ -103,6 +103,38 @@ CREATE FUNCTION javatest.create_temp_file_trusted()
 	RETURNS varchar
 	AS 'org.postgresql.pljava.example.Security.createTempFile'
 	LANGUAGE java;
+/*
+ * System.load() has the security manager check a read of the file before
+ * it does anything else, so a SecurityException means the trusted language
+ * denied the read and any other error means it allowed it. The probed files
+ * do not exist, so an allowed read only fails to find the file and nothing
+ * is loaded.
+ */
+CREATE FUNCTION javatest.java_load(varchar)
+	RETURNS void
+	AS 'java.lang.System.load'
+	LANGUAGE java;
+CREATE FUNCTION javatest.read_check(path varchar)
+	RETURNS varchar
+	AS $$
+BEGIN
+	PERFORM javatest.java_load(path);
+	RETURN 'allowed';
+EXCEPTION WHEN OTHERS THEN
+	IF SQLERRM LIKE 'java.lang.SecurityException%' THEN
+		RETURN 'denied';
+	END IF;
+	RETURN 'allowed';
+END
+$$ LANGUAGE plpgsql;
+/*
+ * Backend.addClassImages() opens a URL, so only a superuser may call it,
+ * also through a trusted function bound to it directly.
+ */
+CREATE FUNCTION javatest.add_class_images(integer, varchar)
+	RETURNS void
+	AS 'org.postgresql.pljava.internal.Backend.addClassImages'
+	LANGUAGE java;
 /* Not executed on top of GPDB due to lack of interest in triggers
 
 -- org.postgresql.pljava.example.Triggers

@@ -601,6 +601,11 @@ static void initPLJavaClasses(void)
 	  	Java_org_postgresql_pljava_internal_Backend_isReleaseLingeringSavepoints
 		},
 		{
+		"_isClasspathInsecure",
+		"()Z",
+		Java_org_postgresql_pljava_internal_Backend__1isClasspathInsecure
+		},
+		{
 		"_getLibraryPath",
 		"()Ljava/lang/String;",
 		Java_org_postgresql_pljava_internal_Backend__1getLibraryPath
@@ -1395,6 +1400,17 @@ JNIEXPORT jboolean JNICALL
 Java_org_postgresql_pljava_internal_Backend_isReleaseLingeringSavepoints(JNIEnv* env, jclass cls)
 {
 	return pljavaReleaseLingeringSavepoints ? JNI_TRUE : JNI_FALSE;
+}
+
+/*
+ * Class:     org_postgresql_pljava_internal_Backend
+ * Method:    _isClasspathInsecure
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_postgresql_pljava_internal_Backend__1isClasspathInsecure(JNIEnv* env, jclass cls)
+{
+	return pljava_classpath_insecure ? JNI_TRUE : JNI_FALSE;
 }
 
 /*

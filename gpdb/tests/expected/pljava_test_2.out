@@ -404,6 +404,39 @@ SELECT javatest.create_temp_file_trusted() FROM javatest.test;
 ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)  (seg0 slice1 10.117.190.141:6002 pid=2279214) (JNICalls.c:78)
 SELECT * FROM javatest.create_temp_file_trusted();
 ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78)
+/*
+ * Trusted reads stay inside java.home, $libdir/java and pljava_classpath,
+ * also when the name contains "..".
+ */
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/no-such-file');
+ read_check 
+------------
+ allowed
+(1 row)
+
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../no-such-file');
+ read_check 
+------------
+ allowed
+(1 row)
+
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/no-such-file');
+ read_check 
+------------
+ denied
+(1 row)
+
+SELECT javatest.read_check('/etc/no-such-file');
+ read_check 
+------------
+ denied
+(1 row)
+
+/*
+ * Only a superuser may open a jar URL.
+ */
+SELECT javatest.add_class_images(0, 'file:///etc/passwd');
+ERROR:  java.sql.SQLSyntaxErrorException: Permission denied. Only a super user can install or replace a jar from a URL
 -- org.postgresql.pljava.example.TupleReturn
 select base, incbase from javatest.tupleReturnExample(2,4);
  base | incbase 
