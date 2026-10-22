@@ -408,25 +408,25 @@ ERROR:  java.lang.SecurityException: read on /tmp/pljava_temp.txt (JNICalls.c:78
  * Trusted reads stay inside java.home, $libdir/java and pljava_classpath,
  * also when the name contains "..".
  */
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/release');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/no-such-file');
  read_check 
 ------------
  allowed
 (1 row)
 
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../release');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../no-such-file');
  read_check 
 ------------
  allowed
 (1 row)
 
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/passwd');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/no-such-file');
  read_check 
 ------------
  denied
 (1 row)
 
-SELECT javatest.read_check('/etc/passwd');
+SELECT javatest.read_check('/etc/no-such-file');
  read_check 
 ------------
  denied

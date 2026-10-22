@@ -136,7 +136,9 @@ CREATE FUNCTION javatest.create_temp_file_trusted()
 /*
  * System.load() has the security manager check a read of the file before
  * it does anything else, so a SecurityException means the trusted language
- * denied the read and any other error means it allowed it.
+ * denied the read and any other error means it allowed it. The probed files
+ * do not exist, so an allowed read only fails to find the file and nothing
+ * is loaded.
  */
 CREATE FUNCTION javatest.java_load(varchar)
 	RETURNS void

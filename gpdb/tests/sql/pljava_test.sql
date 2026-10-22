@@ -114,10 +114,10 @@ SELECT * FROM javatest.create_temp_file_trusted();
  * Trusted reads stay inside java.home, $libdir/java and pljava_classpath,
  * also when the name contains "..".
  */
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/release');
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../release');
-SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/passwd');
-SELECT javatest.read_check('/etc/passwd');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/no-such-file');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/lib/../no-such-file');
+SELECT javatest.read_check(javatest.java_getSystemProperty('java.home') || '/../../../../../../../../../../etc/no-such-file');
+SELECT javatest.read_check('/etc/no-such-file');
 
 /*
  * Only a superuser may open a jar URL.
