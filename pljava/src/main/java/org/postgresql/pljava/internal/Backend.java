@@ -224,6 +224,12 @@ public class Backend
 					String[] classpathArray = classpath.split(":");
 					String jarpath =  Backend.getLibraryPath() + "/java";
 
+					// With pljava_classpath_insecure any user can set
+					// pljava_classpath, so then its entries grant no reads;
+					// jars under $libdir/java are still covered.
+					if (Backend._isClasspathInsecure())
+						classpathArray = new String[0];
+
 					File[] roots = new File[classpathArray.length + 2];
 					roots[0] = new File(System.getProperty("java.home"));
 					roots[1] = new File(jarpath);
@@ -379,6 +385,7 @@ public class Backend
 	public native static boolean isReleaseLingeringSavepoints();
 
 	private native static String _getConfigOption(String key);
+	private native static boolean _isClasspathInsecure();
 	private native static String _getLibraryPath();
 
 	private native static int  _getStatementCacheSize();
