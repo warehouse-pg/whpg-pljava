@@ -220,7 +220,9 @@ public class Backend
 					// $libdir/java and in
 					// pljava_classpath.
 					//
-					String classpath = Backend._getConfigOption("pljava_classpath");
+					// This check runs without THREADLOCK, and reading the
+					// GUC enters the backend, so use the synchronized getter.
+					String classpath = Backend.getConfigOption("pljava_classpath");
 					String[] classpathArray = classpath.split(":");
 					String jarpath =  Backend.getLibraryPath() + "/java";
 

@@ -146,6 +146,22 @@ select usename, usesuper from javatest.listNonSupers() where usename = 'pljava_t
 
 select * from javatest.propertyExample();
 
+/*
+ * A trusted file check reads pljava_classpath from the backend. It must hold
+ * the lock, or it can enter the backend while the finalizer thread frees
+ * the native memory of earlier rows.
+ */
+DO $$
+DECLARE
+	path varchar := javatest.java_getSystemProperty('java.home') || '/no-such-file';
+BEGIN
+	FOR i IN 1..5000 LOOP
+		PERFORM count(*) FROM javatest.propertyExample();
+		PERFORM javatest.read_check(path);
+	END LOOP;
+END
+$$;
+
 -- org.postgresql.pljava.example.UsingPropertiesAsResultSet
 
 select * from javatest.resultSetPropertyExample();
