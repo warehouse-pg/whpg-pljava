@@ -7,3 +7,7 @@ target/staging
 target/javadoc-bundle-options
 pljava-so/pgsql.properties
 pljava-so/target/
+
+# Local validation runs (gpdb/ci/run-regress.sh by hand)
+/pljava-*.log
+/pljava-regression.diffs

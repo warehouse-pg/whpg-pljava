@@ -77,12 +77,18 @@ RESULT_FILE=$(mktemp)
 ) &
 QUERY_PID=$!
 
-# Segment backends are the gp_role=execute postgres processes. Signal them
-# repeatedly while the query above is in flight.
+# The segment backends of the query above, found through the catalog rather
+# than ps: on macOS the ps title PostgreSQL sets is not visible to pgrep, and
+# pg_stat_activity is exact where a process-name match is not. All segments
+# of a demo cluster are local, so the pids can be signalled directly.
+seg_pids() {
+    qt "SELECT pid FROM gp_dist_random('pg_stat_activity')
+         WHERE query LIKE '%java_addone%' AND pid <> pg_backend_pid()" 2>/dev/null
+}
 sent=0
 for _ in $(seq 1 "$SIGNAL_BURSTS"); do
     kill -0 "$QUERY_PID" 2>/dev/null || break
-    for pid in $(pgrep -f 'postgres.*gp_role=execute' 2>/dev/null); do
+    for pid in $(seg_pids); do
         kill -USR1 "$pid" 2>/dev/null && sent=$((sent+1))
     done
     sleep 0.1
@@ -110,8 +116,9 @@ AGAIN=$(qt "SELECT sum(java_addone(id))::text FROM mpp_probe")
 log "4. no crash in the segment logs"
 # Only the log file each instance is writing now: older files in the same
 # directory may hold crashes from unrelated earlier sessions.
-mapfile -t SEGDIRS < <(qt "SELECT datadir FROM gp_segment_configuration ORDER BY content")
-CURRENT_LOGS=$(for d in "${SEGDIRS[@]}"; do ls -t "$d"/log/*.csv 2>/dev/null | head -1; done)
+# (no mapfile: macOS ships bash 3.2)
+CURRENT_LOGS=$(qt "SELECT datadir FROM gp_segment_configuration ORDER BY content" \
+               | while IFS= read -r d; do ls -t "$d"/log/*.csv 2>/dev/null | head -1; done)
 CRASH=$(grep -lE 'PANIC|segmentation fault|was terminated by signal' \
           $CURRENT_LOGS 2>/dev/null | head -5 || true)
 if [ -n "$CRASH" ]; then

@@ -20,12 +20,16 @@ include $(PGXS)
 JAVA_HOME := $(PLJAVA_HOME)
 
 sharedir   := $(shell $(PG_CONFIG) --sharedir)
-PLJAVA_LIB := libpljava-so-$(PLJAVA_OSS_VERSION)
+# pljava-packaging names the module with an explicit .bundle on macOS (its osx
+# profile), so a suffix-less LOAD would have the server append DLSUFFIX (.dylib
+# on PG16+) and miss it; name the file the way the installer laid it down.
+PLJAVA_LIB := libpljava-so-$(PLJAVA_OSS_VERSION)$(if $(filter Darwin,$(shell uname -s)),.bundle)
 EXAMPLES_JAR := $(sharedir)/pljava/pljava-examples-$(PLJAVA_OSS_VERSION).jar
 INSTALLER  := $(PROJDIR)/pljava-packaging/target/pljava-pg$(PGMAJOR).jar
 
 # The server locates the JVM through this GUC in 1.6 (no LD_LIBRARY_PATH).
-LIBJVM     ?= $(firstword $(wildcard $(JAVA_HOME)/lib/server/libjvm.so $(JAVA_HOME)/jre/lib/*/server/libjvm.so))
+LIBJVM     ?= $(firstword $(wildcard $(JAVA_HOME)/lib/server/libjvm.so $(JAVA_HOME)/jre/lib/*/server/libjvm.so \
+	                                  $(JAVA_HOME)/lib/server/libjvm.dylib))
 
 REGRESS_OPTS = --dbname=pljava_test --create-role=pljava_test
 REGRESS = pljava_ext_init pljava_functions pljava_test pljava_ext_cleanup pljava_init pljava_functions pljava_test
@@ -68,7 +72,7 @@ else
 endif
 
 uninstall:
-	rm -f '$(pkglibdir)/$(PLJAVA_LIB)$(DLSUFFIX)'
+	rm -f '$(pkglibdir)/$(PLJAVA_LIB)' '$(pkglibdir)/$(PLJAVA_LIB)$(DLSUFFIX)'
 	rm -rf '$(sharedir)/pljava'
 	rm -f '$(sharedir)/extension/pljava.control' '$(sharedir)/extension/pljava--'*'.sql'
 
@@ -85,7 +89,9 @@ regress-sql:
 	      '$(PROJDIR)/gpdb/tests/templates/'$$t.source > '$(PROJDIR)/gpdb/tests/sql/'$$t.sql; done
 
 test: show_java_version regress-sql
-	sed -i '/.* # PLJAVA.*/d' $(MASTER_DATA_DIRECTORY)/pg_hba.conf
+	# Edit through a temp file: GNU and BSD sed disagree on -i's syntax.
+	sed '/.* # PLJAVA.*/d' $(MASTER_DATA_DIRECTORY)/pg_hba.conf > $(MASTER_DATA_DIRECTORY)/pg_hba.conf.pljava.tmp && \
+	  mv $(MASTER_DATA_DIRECTORY)/pg_hba.conf.pljava.tmp $(MASTER_DATA_DIRECTORY)/pg_hba.conf
 	echo 'host    all      pljava_test   0.0.0.0/0    trust # PLJAVA' >> $(MASTER_DATA_DIRECTORY)/pg_hba.conf
 	echo 'local   all      pljava_test                trust # PLJAVA' >> $(MASTER_DATA_DIRECTORY)/pg_hba.conf
 	gpstop -u
@@ -94,16 +100,15 @@ test: show_java_version regress-sql
 # Cluster-wide: tell the server where libjvm.so is. Needs a restart to apply.
 # On Java 18 and later PL/Java 1.6 refuses to load unless the JVM is started
 # with -Djava.security.manager=allow (JEP 411); enforcement itself works through
-# Java 23. Set or clear pljava.vmoptions to match the runtime JDK.
+# Java 23. The regression suite's expected output was generated with the JVM
+# in UTC (the CI containers' zone); pin it so a run on a developer host in any
+# other zone compares equal. Set pljava.vmoptions to match the runtime JDK.
 JAVA_MAJOR := $(shell '$(JAVA_HOME)/bin/java' -version 2>&1 | sed -nE 's/^[a-z]+ version "(1\.)?([0-9]+).*/\2/p')
+VMOPTIONS  := -Duser.timezone=UTC$(shell [ '$(JAVA_MAJOR)' -ge 18 ] 2>/dev/null && echo ' -Djava.security.manager=allow')
 targetconfig:
-	test -n '$(LIBJVM)' || { echo "cannot find libjvm.so under JAVA_HOME=$(JAVA_HOME)"; exit 1; }
+	test -n '$(LIBJVM)' || { echo "cannot find libjvm.so/.dylib under JAVA_HOME=$(JAVA_HOME)"; exit 1; }
 	gpconfig -c pljava.libjvm_location -v "'$(LIBJVM)'" --skipvalidation
-	if [ '$(JAVA_MAJOR)' -ge 18 ] 2>/dev/null; then \
-	  gpconfig -c pljava.vmoptions -v "'-Djava.security.manager=allow'" --skipvalidation; \
-	else \
-	  gpconfig -r pljava.vmoptions --skipvalidation >/dev/null 2>&1 || true; \
-	fi
+	gpconfig -c pljava.vmoptions -v "'$(VMOPTIONS)'" --skipvalidation
 
 installcheck: test
 targetcheck: targetconfig test
