@@ -131,8 +131,6 @@ static JavaVM* s_javaVM = 0;
 static jclass  s_Backend_class;
 static jmethodID s_setTrusted;
 static char* libjvmlocation;
-static int   statementCacheSize;
-static bool  pljavaReleaseLingeringSavepoints;
 static bool  s_currentTrust;
 static int   s_javaLogLevel;
 
@@ -1351,7 +1349,7 @@ JNICALL Java_org_postgresql_pljava_internal_Backend__1getConfigOption(JNIEnv* en
 JNIEXPORT jint JNICALL
 Java_org_postgresql_pljava_internal_Backend__1getStatementCacheSize(JNIEnv* env, jclass cls)
 {
-	return statementCacheSize;
+	return pljava_statement_cache_size;
 }
 
 /*
@@ -1399,7 +1397,7 @@ Java_org_postgresql_pljava_internal_Backend_isCallingJava(JNIEnv* env, jclass cl
 JNIEXPORT jboolean JNICALL
 Java_org_postgresql_pljava_internal_Backend_isReleaseLingeringSavepoints(JNIEnv* env, jclass cls)
 {
-	return pljavaReleaseLingeringSavepoints ? JNI_TRUE : JNI_FALSE;
+	return pljava_release_lingering_savepoints ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
