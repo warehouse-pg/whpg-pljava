@@ -82,7 +82,7 @@ install: installdirs install-lib installconfs
 uninstall: uninstall-lib 
 	rm -rf '$(PLJAVALIB)'
 	rm -rf '$(PLJAVADATA)'
-	rm -rf '$(GP_ENV_DIR)/10-pljava.conf'
+	rm -rf '$(GP_ENV_DIR)/30-pljava.conf'
 	find $(PLJAVAEXT) -name "pljava*" | xargs rm -rf
 
 show_java_version:
